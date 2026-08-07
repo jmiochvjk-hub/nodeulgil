@@ -296,7 +296,7 @@ function mutate(fn){
   pending.push(fn); flush();
 }
 
-setInterval(()=>{ if(!document.hidden) (pending.length?flush():pull()); }, 12000);
+setInterval(()=>{ pending.length?flush():pull(); }, 12000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pull(); });
 window.addEventListener('online',()=>pending.length?flush():pull());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
