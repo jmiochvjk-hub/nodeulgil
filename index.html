@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>노들길 근무기록</title>
+<style>
+  :root{
+    color-scheme:light;
+    --bg:#ffffff; --panel:#ffffff; --cell:#f6f7f9; --line:#e4e7ec; --text:#16191d; --muted:#7a828d;
+    --accent:#3563e9; --soft:#eef2ff;
+    --p1:#3563e9; --p1s:#e8eeff; --p2:#e0568c; --p2s:#fdebf2;
+    --ok:#12a06a; --warn:#e0563e;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.07);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",Pretendard,"Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    font-size:15px; line-height:1.5; padding-bottom:40px;
+  }
+  .wrap{max-width:720px; margin:0 auto; padding:14px}
+  header{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+  h1{font-size:18px; margin:0; letter-spacing:-.3px}
+  .tabs{display:flex; gap:5px; background:var(--panel); padding:5px; border:1px solid var(--line); border-radius:12px; margin-bottom:14px}
+  .tabs button{flex:1; border:0; background:transparent; color:var(--muted); font:600 14px/1.4 inherit; padding:9px 4px; border-radius:9px; cursor:pointer}
+  .tabs button.on{background:var(--accent); color:#fff}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:14px; margin-bottom:14px}
+  .card h2{font-size:12px; margin:0 0 11px; color:var(--muted); font-weight:700; letter-spacing:.4px}
+
+  /* 월 네비 */
+  .nav{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:12px}
+  .nav b{font-size:17px; min-width:132px; text-align:center; font-variant-numeric:tabular-nums}
+  .nav button{border:1px solid var(--line); background:var(--panel); color:var(--text); width:34px; height:34px; border-radius:10px; font-size:16px; cursor:pointer}
+  .nav .today{width:auto; padding:0 12px; font-size:13px; font-weight:600; color:var(--muted)}
+
+  /* 요약 */
+  .sum{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .pcard{border-radius:12px; padding:12px 13px}
+  .pcard.a{background:var(--p1s)} .pcard.b{background:var(--p2s)}
+  .pcard .nm{font-size:13px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .pcard.a .dot{background:var(--p1)} .pcard.b .dot{background:var(--p2)}
+  .pcard .big{font-size:25px; font-weight:800; letter-spacing:-1px; font-variant-numeric:tabular-nums}
+  .pcard .big span{font-size:13px; font-weight:600; color:var(--muted); margin-left:2px}
+  .pcard .sub{font-size:12px; color:var(--muted); margin-top:3px}
+
+  /* 달력 */
+  .dow{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px}
+  .dow div{text-align:center; font-size:11px; font-weight:700; color:var(--muted); padding:4px 0}
+  .dow div:first-child{color:#e0563e} .dow div:last-child{color:#3563e9}
+  .grid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
+  .cell{
+    min-height:66px; border-radius:9px; border:1px solid transparent; background:var(--cell);
+    padding:4px 3px 3px; cursor:pointer; display:flex; flex-direction:column; gap:2px; overflow:hidden;
+  }
+  .cell.off{opacity:.32}
+  .cell.today .d{background:var(--accent); color:#fff; border-radius:50%}
+  .cell.sel{border-color:var(--accent)}
+  .cell .d{font-size:12px; font-weight:700; width:20px; height:20px; line-height:20px; text-align:center; margin:0 auto 1px; font-variant-numeric:tabular-nums}
+  .chip{font-size:clamp(7.5px,2.05vw,10.5px); font-weight:700; border-radius:4px; padding:1.5px 0; text-align:center; letter-spacing:-.4px; line-height:1.3; white-space:nowrap; overflow:hidden}
+  @media(min-width:721px){ .chip{font-size:10.5px} }
+  .chip.a{background:var(--p1s); color:var(--p1)} .chip.b{background:var(--p2s); color:var(--p2)}
+  .rv{font-size:9px; color:var(--muted); text-align:center; margin-top:auto}
+
+  /* 편집 시트 */
+  dialog{border:0; padding:0; background:transparent; max-width:100%; width:100%; margin:auto auto 0}
+  dialog::backdrop{background:rgba(0,0,0,.4)}
+  .sheet{background:var(--panel); border-radius:18px 18px 0 0; padding:18px 16px 26px; max-width:720px; margin:0 auto; border-top:1px solid var(--line)}
+  @media(min-width:721px){ dialog{margin:auto} .sheet{border-radius:18px; border:1px solid var(--line)} }
+  .sheet h3{margin:0 0 14px; font-size:16px; display:flex; justify-content:space-between; align-items:center}
+  .sheet h3 button{border:0; background:transparent; color:var(--muted); font-size:22px; cursor:pointer; line-height:1}
+  .prow{border:1px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:10px}
+  .prow.on.a{border-color:var(--p1); background:var(--p1s)}
+  .prow.on.b{border-color:var(--p2); background:var(--p2s)}
+  .prow .top{display:flex; align-items:center; justify-content:space-between; margin-bottom:9px}
+  .prow .nm{font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px}
+  .sw{position:relative; width:44px; height:26px; background:var(--line); border-radius:20px; cursor:pointer; transition:.15s; flex:none}
+  .sw::after{content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.15s}
+  .prow.on.a .sw{background:var(--p1)} .prow.on.b .sw{background:var(--p2)}
+  .prow.on .sw::after{left:21px}
+  .fields{display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap}
+  .fields.hide{display:none}
+  .f{display:flex; flex-direction:column; gap:3px}
+  .f label{font-size:11px; color:var(--muted); font-weight:600}
+  select,input[type=number],input[type=text],input[type=date],textarea{
+    font:inherit; font-size:14px; color:var(--text); background:var(--panel);
+    border:1px solid var(--line); border-radius:9px; padding:8px 9px; outline:none; font-variant-numeric:tabular-nums;
+  }
+  select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+  .tsel{display:flex; align-items:center; gap:3px}
+  .tsel select{padding:8px 4px}
+  textarea{resize:vertical; min-height:66px; width:100%}
+  .dur{font-size:12px; color:var(--muted); font-weight:700; padding-bottom:9px}
+  .btn{border:0; background:var(--accent); color:#fff; font:600 14px/1.4 inherit; padding:11px 16px; border-radius:10px; cursor:pointer}
+  .btn.ghost{background:transparent; color:var(--muted); border:1px solid var(--line)}
+  .btn.sm{padding:6px 11px; font-size:12.5px}
+  .btn.full{width:100%; margin-top:6px}
+
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  .tw{overflow-x:auto; margin:0 -14px; padding:0 14px}
+  th{text-align:left; font-size:11px; color:var(--muted); font-weight:700; padding:7px 7px; border-bottom:1px solid var(--line); white-space:nowrap}
+  td{padding:9px 7px; border-bottom:1px solid var(--line); white-space:nowrap; font-variant-numeric:tabular-nums}
+  tbody tr:last-child td{border-bottom:0}
+  .chk{width:18px; height:18px; accent-color:var(--ok); cursor:pointer}
+  .del{background:transparent; border:0; color:var(--muted); cursor:pointer; font-size:17px; padding:0 3px}
+  .empty{color:var(--muted); text-align:center; padding:24px 0; font-size:13px}
+  .memo{display:flex; gap:10px; align-items:flex-start; padding:11px 0; border-bottom:1px solid var(--line)}
+  .memo:last-child{border-bottom:0}
+  .memo .txt{flex:1; white-space:pre-wrap; word-break:break-word}
+  .memo.done .txt{text-decoration:line-through; color:var(--muted)}
+  .memo .when{font-size:11px; color:var(--muted); margin-top:2px}
+  .pill{background:var(--soft); color:var(--accent); font-size:12px; font-weight:700; padding:2px 8px; border-radius:20px}
+  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end}
+  footer{text-align:center; color:var(--muted); font-size:12px; padding:6px 0 20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>노들길 근무기록</h1>
+  <div>
+    <button class="btn ghost sm" onclick="exportData()">백업</button>
+    <button class="btn ghost sm" onclick="importFile.click()">불러오기</button>
+    <input type="file" id="importFile" accept=".json" hidden onchange="importData(this)">
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="on" data-t="work">근무시간</button>
+  <button data-t="book">예약공지</button>
+  <button data-t="memo">메모</button>
+</div>
+
+<!-- ============ 근무 ============ -->
+<section id="tab-work">
+  <div class="card">
+    <div class="nav">
+      <button onclick="moveMonth(-1)">‹</button>
+      <b id="navLabel"></b>
+      <button onclick="moveMonth(1)">›</button>
+      <button class="today" onclick="goToday()">오늘</button>
+    </div>
+    <div class="sum" id="sumBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="card">
+    <h2>이번 달 상세</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>날짜</th><th>요일</th><th>이름</th><th>근무시간</th><th>시간</th><th>리뷰</th><th>확인</th><th></th></tr></thead>
+        <tbody id="workBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="workEmpty">기록이 없습니다</div>
+  </div>
+</section>
+
+<!-- ============ 예약 ============ -->
+<section id="tab-book" hidden>
+  <div class="card">
+    <h2>예약 등록</h2>
+    <div class="row">
+      <div class="f"><label>날짜</label><input type="date" id="bDate"></div>
+      <div class="f"><label>시간</label><div class="tsel"><select id="bH"></select>:<select id="bM"></select></div></div>
+      <div class="f"><label>인원</label><input type="number" id="bCount" value="1" min="1" style="width:70px"></div>
+      <div class="f"><label>고객명</label><input type="text" id="bName" placeholder="선택" style="width:120px"></div>
+      <button class="btn" onclick="addBook()">등록</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>예약 목록 <span class="pill" id="bPill">0</span></h2>
+    <div class="row" style="margin-bottom:10px">
+      <div class="f"><label>날짜 검색</label><input type="date" id="bFilter" onchange="renderBook()"></div>
+      <button class="btn ghost sm" onclick="bFilter.value='';renderBook()">전체</button>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>날짜</th><th>시간</th><th>인원</th><th>고객</th><th>확인</th><th></th></tr></thead>
+        <tbody id="bookBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="bookEmpty">예약이 없습니다</div>
+  </div>
+</section>
+
+<!-- ============ 메모 ============ -->
+<section id="tab-memo" hidden>
+  <div class="card">
+    <h2>메모 작성</h2>
+    <textarea id="mText" placeholder="예) 재고 확인해 주세요"></textarea>
+    <button class="btn full" onclick="addMemo()">추가</button>
+  </div>
+  <div class="card">
+    <h2>메모 목록 <span class="pill" id="mPill">0</span></h2>
+    <div id="memoList"></div>
+    <div class="empty" id="memoEmpty">메모가 없습니다</div>
+  </div>
+</section>
+
+<footer>데이터는 이 기기에 저장됩니다 · 가끔 백업하세요</footer>
+</div>
+
+<!-- 편집 시트 -->
+<dialog id="sheet">
+  <div class="sheet">
+    <h3><span id="shTitle"></span><button onclick="sheet.close()">×</button></h3>
+    <div id="shBody"></div>
+    <button class="btn full" onclick="saveSheet()">저장</button>
+  </div>
+</dialog>
+
+<script>
+const KEY='work-log-v2';
+const DOW=['일','월','화','수','목','금','토'];
+const PEOPLE=[{id:'p1',name:'왕지선',cls:'a'},{id:'p2',name:'석정윤',cls:'b'}];
+let db=load(), cur=new Date(), selDate=ymd(new Date());
+
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY))||{};return{work:d.work||[],book:d.book||[],memo:d.memo||[]};}
+  catch(e){return{work:[],book:[],memo:[]};}
+}
+const save=()=>localStorage.setItem(KEY,JSON.stringify(db));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function ymd(d){return d.toLocaleDateString('sv-SE');}
+const pad=n=>String(n).padStart(2,'0');
+
+/* 24시간 기준 계산 (야간 근무 자동 처리) */
+function mins(s,e){const[a,b]=s.split(':').map(Number),[c,d]=e.split(':').map(Number);let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;return m;}
+const fmtHM=m=>`${Math.floor(m/60)}시간 ${m%60?pad(m%60)+'분':''}`.trim();
+/* 달력 칸용 축약 표기: 09:00→9, 10:30→10:30 */
+const brief=t=>t.slice(3)==='00'?String(Number(t.slice(0,2))):String(Number(t.slice(0,2)))+':'+t.slice(3);
+
+/* 시/분 셀렉트 (24시간제) */
+function hourOpts(v){let o='';for(let i=0;i<24;i++)o+=`<option value="${pad(i)}"${pad(i)===v?' selected':''}>${pad(i)}</option>`;return o;}
+function minOpts(v){let o='';for(let i=0;i<60;i+=10)o+=`<option value="${pad(i)}"${pad(i)===v?' selected':''}>${pad(i)}</option>`;return o;}
+
+/* 탭 */
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  ['work','book','memo'].forEach(t=>document.getElementById('tab-'+t).hidden=(t!==b.dataset.t));
+});
+
+/* ---------- 달력 ---------- */
+function moveMonth(n){cur.setDate(1);cur.setMonth(cur.getMonth()+n);renderWork();}
+function goToday(){cur=new Date();selDate=ymd(new Date());renderWork();}
+const getRec=(date,pid)=>db.work.find(r=>r.date===date&&r.person===pid);
+
+function renderWork(){
+  const y=cur.getFullYear(),m=cur.getMonth();
+  navLabel.textContent=`${y}년 ${m+1}월`;
+  const key=`${y}-${pad(m+1)}`;
+  const rows=db.work.filter(r=>r.date.startsWith(key));
+
+  sumBox.innerHTML=PEOPLE.map(p=>{
+    const rs=rows.filter(r=>r.person===p.id);
+    const tot=rs.reduce((s,r)=>s+mins(r.start,r.end),0);
+    const rv=rs.reduce((s,r)=>s+r.review,0);
+    return `<div class="pcard ${p.cls}">
+      <div class="nm"><i class="dot"></i>${p.name}</div>
+      <div class="big">${(tot/60).toFixed(1)}<span>시간</span></div>
+      <div class="sub">${rs.length}일 근무 · 리뷰 ${rv}건</div>
+    </div>`;
+  }).join('');
+
+  const first=new Date(y,m,1), start=new Date(y,m,1-first.getDay()), today=ymd(new Date());
+  let html='';
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const ds=ymd(d), off=d.getMonth()!==m;
+    if(i>=35&&off) break;
+    const chips=PEOPLE.map(p=>{const r=getRec(ds,p.id);
+      return r?`<div class="chip ${p.cls}">${p.name[0]} ${brief(r.start)}-${brief(r.end)}</div>`:'';}).join('');
+    const rv=PEOPLE.reduce((s,p)=>s+(getRec(ds,p.id)?.review||0),0);
+    html+=`<div class="cell${off?' off':''}${ds===today?' today':''}${ds===selDate?' sel':''}" onclick="openSheet('${ds}')">
+      <div class="d">${d.getDate()}</div>${chips}${rv?`<div class="rv">리뷰 ${rv}</div>`:''}</div>`;
+  }
+  grid.innerHTML=html;
+
+  const list=rows.sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  workBody.innerHTML=list.map(r=>{
+    const p=PEOPLE.find(x=>x.id===r.person)||{name:'?',cls:'a'};
+    const d=new Date(r.date+'T00:00:00');
+    return `<tr>
+      <td>${r.date.slice(5)}</td><td>${DOW[d.getDay()]}</td>
+      <td><i class="dot" style="background:var(--${p.cls==='a'?'p1':'p2'})"></i> ${p.name}</td>
+      <td>${r.start} ~ ${r.end}</td><td><b>${fmtHM(mins(r.start,r.end))}</b></td>
+      <td>${r.review||'—'}</td>
+      <td><input type="checkbox" class="chk" ${r.ok?'checked':''} onchange="toggle('work','${r.id}')"></td>
+      <td><button class="del" onclick="del('work','${r.id}')">×</button></td></tr>`;
+  }).join('');
+  workEmpty.hidden=list.length>0;
+}
+
+/* ---------- 편집 시트 ---------- */
+function openSheet(ds){
+  selDate=ds;
+  const d=new Date(ds+'T00:00:00');
+  shTitle.textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]})`;
+  shBody.innerHTML=PEOPLE.map(p=>{
+    const r=getRec(ds,p.id);
+    const last=[...db.work].reverse().find(x=>x.person===p.id);
+    const s=(r?.start)||(last?.start)||'09:00', e=(r?.end)||(last?.end)||'18:00';
+    return `<div class="prow ${p.cls}${r?' on':''}" id="row-${p.id}">
+      <div class="top">
+        <div class="nm"><i class="dot" style="background:var(--${p.cls==='a'?'p1':'p2'})"></i>${p.name}</div>
+        <div class="sw" onclick="toggleRow('${p.id}')"></div>
+      </div>
+      <div class="fields${r?'':' hide'}">
+        <div class="f"><label>출근</label><div class="tsel">
+          <select id="${p.id}-sh" onchange="upDur('${p.id}')">${hourOpts(s.slice(0,2))}</select>:
+          <select id="${p.id}-sm" onchange="upDur('${p.id}')">${minOpts(s.slice(3,5))}</select></div></div>
+        <div class="f"><label>퇴근</label><div class="tsel">
+          <select id="${p.id}-eh" onchange="upDur('${p.id}')">${hourOpts(e.slice(0,2))}</select>:
+          <select id="${p.id}-em" onchange="upDur('${p.id}')">${minOpts(e.slice(3,5))}</select></div></div>
+        <div class="dur" id="${p.id}-dur"></div>
+        <div class="f"><label>리뷰 수</label><input type="number" id="${p.id}-rv" min="0" value="${r?.review||0}" style="width:70px"></div>
+      </div></div>`;
+  }).join('');
+  PEOPLE.forEach(p=>upDur(p.id));
+  sheet.showModal();
+}
+function toggleRow(pid){
+  const row=document.getElementById('row-'+pid);
+  row.classList.toggle('on');
+  row.querySelector('.fields').classList.toggle('hide',!row.classList.contains('on'));
+}
+function tval(pid,k){return document.getElementById(`${pid}-${k}h`).value+':'+document.getElementById(`${pid}-${k}m`).value;}
+function upDur(pid){
+  const el=document.getElementById(pid+'-dur'); if(!el) return;
+  el.textContent=fmtHM(mins(tval(pid,'s'),tval(pid,'e')));
+}
+function saveSheet(){
+  PEOPLE.forEach(p=>{
+    const on=document.getElementById('row-'+p.id).classList.contains('on');
+    const ex=getRec(selDate,p.id);
+    if(!on){ if(ex) db.work=db.work.filter(r=>r.id!==ex.id); return; }
+    const o={start:tval(p.id,'s'),end:tval(p.id,'e'),review:Number(document.getElementById(p.id+'-rv').value)||0};
+    if(ex) Object.assign(ex,o);
+    else db.work.push({id:uid(),date:selDate,person:p.id,...o,ok:false});
+  });
+  save(); sheet.close(); renderWork();
+}
+
+/* ---------- 예약 ---------- */
+function addBook(){
+  if(!bDate.value) return alert('날짜를 선택하세요');
+  db.book.push({id:uid(),date:bDate.value,time:bH.value+':'+bM.value,
+    count:Number(bCount.value)||1,name:bName.value.trim(),ok:false});
+  save(); bName.value=''; renderBook();
+}
+function renderBook(){
+  const f=bFilter.value;
+  const rows=db.book.filter(r=>!f||r.date===f).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+  bPill.textContent=rows.length;
+  bookBody.innerHTML=rows.map(r=>`<tr>
+    <td>${r.date.slice(5)}</td><td>${r.time}</td><td>${r.count}명</td>
+    <td>${esc(r.name)||'—'}</td>
+    <td><input type="checkbox" class="chk" ${r.ok?'checked':''} onchange="toggle('book','${r.id}')"></td>
+    <td><button class="del" onclick="del('book','${r.id}')">×</button></td></tr>`).join('');
+  bookEmpty.hidden=rows.length>0;
+}
+
+/* ---------- 메모 ---------- */
+function addMemo(){
+  const t=mText.value.trim(); if(!t) return;
+  db.memo.unshift({id:uid(),text:t,at:new Date().toISOString(),ok:false});
+  save(); mText.value=''; renderMemo();
+}
+function renderMemo(){
+  mPill.textContent=db.memo.filter(m=>!m.ok).length;
+  memoList.innerHTML=db.memo.map(m=>`<div class="memo ${m.ok?'done':''}">
+    <input type="checkbox" class="chk" ${m.ok?'checked':''} onchange="toggle('memo','${m.id}')">
+    <div class="txt">${esc(m.text)}<div class="when">${new Date(m.at).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})}</div></div>
+    <button class="del" onclick="del('memo','${m.id}')">×</button></div>`).join('');
+  memoEmpty.hidden=db.memo.length>0;
+}
+
+/* ---------- 공통 ---------- */
+function toggle(kind,id){const it=db[kind].find(x=>x.id===id); if(it){it.ok=!it.ok; save(); renderAll();}}
+function del(kind,id){if(!confirm('삭제할까요?'))return; db[kind]=db[kind].filter(x=>x.id!==id); save(); renderAll();}
+function renderAll(){renderWork();renderBook();renderMemo();}
+function exportData(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));
+  a.download=`근무기록-${ymd(new Date())}.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(input){
+  const f=input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);
+    if(!confirm('기존 데이터를 덮어씁니다. 계속할까요?'))return;
+    db={work:d.work||[],book:d.book||[],memo:d.memo||[]}; save(); renderAll();
+  }catch(e){alert('파일 형식이 올바르지 않습니다');} input.value='';};
+  rd.readAsText(f);
+}
+
+/* init */
+bDate.value=ymd(new Date());
+bH.innerHTML=hourOpts('14'); bM.innerHTML=minOpts('00');
+renderAll();
+</script>
+</body>
+</html>
