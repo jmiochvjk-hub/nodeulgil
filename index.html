@@ -299,6 +299,7 @@ function mutate(fn){
 setInterval(()=>{ pending.length?flush():pull(); }, 12000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pull(); });
 window.addEventListener('online',()=>pending.length?flush():pull());
+window.addEventListener('focus',()=>pull());   // 다른 앱 갔다 오면 바로 최신으로
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function ymd(d){return d.toLocaleDateString('sv-SE');}
@@ -318,6 +319,7 @@ function minOpts(v){let o='';for(let i=0;i<60;i+=10)o+=`<option value="${pad(i)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
   ['work','book','memo'].forEach(t=>document.getElementById('tab-'+t).hidden=(t!==b.dataset.t));
+  pull();
 });
 
 /* ---------- 달력 ---------- */
