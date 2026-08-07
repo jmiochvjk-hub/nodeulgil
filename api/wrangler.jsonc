@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "nodeulgil-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-01",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nodeulgil",
+      "database_id": "f73cc02a-1256-4c37-ae00-4e7179b716fc"
+    }
+  ]
+}

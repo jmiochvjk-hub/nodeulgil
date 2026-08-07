@@ -22,6 +22,10 @@
   .wrap{max-width:720px; margin:0 auto; padding:14px}
   header{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
   h1{font-size:18px; margin:0; letter-spacing:-.3px}
+  .sync{display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--muted); margin-top:3px; cursor:pointer}
+  .sync i{width:7px; height:7px; border-radius:50%; background:var(--muted); flex:none}
+  .sync.ok i{background:var(--ok)} .sync.off i{background:#c8ccd2} .sync.err i{background:var(--warn)}
+  .sync.err{color:var(--warn)}
   .tabs{display:flex; gap:5px; background:var(--panel); padding:5px; border:1px solid var(--line); border-radius:12px; margin-bottom:14px}
   .tabs button{flex:1; border:0; background:transparent; color:var(--muted); font:600 14px/1.4 inherit; padding:9px 4px; border-radius:9px; cursor:pointer}
   .tabs button.on{background:var(--accent); color:#fff}
@@ -119,7 +123,10 @@
 <div class="wrap">
 
 <header>
-  <h1>노들길 근무기록</h1>
+  <div>
+    <h1>노들길 근무기록</h1>
+    <div class="sync" id="sync" onclick="askPass()"><i></i><span>연결 중…</span></div>
+  </div>
   <div>
     <button class="btn ghost sm" onclick="exportData()">백업</button>
     <button class="btn ghost sm" onclick="importFile.click()">불러오기</button>
@@ -217,7 +224,8 @@
 </dialog>
 
 <script>
-const KEY='work-log-v2';
+const API='https://nodeulgil-api.jmiochvjk.workers.dev/data';
+const KEY='work-log-v2', PKEY='nodeulgil-pass';
 const DOW=['일','월','화','수','목','금','토'];
 const PEOPLE=[{id:'p1',name:'왕지선',cls:'a'},{id:'p2',name:'석정윤',cls:'b'}];
 let db=load(), cur=new Date(), selDate=ymd(new Date());
@@ -227,6 +235,70 @@ function load(){
   catch(e){return{work:[],book:[],memo:[]};}
 }
 const save=()=>localStorage.setItem(KEY,JSON.stringify(db));
+
+/* ============ 클라우드 동기화 ============
+   변경은 즉시 화면/로컬에 반영하고 서버로 전송한다.
+   다른 기기가 먼저 저장했으면(409) 서버 내용을 받아 이번 변경만 다시 적용해 재전송한다. */
+let ver=0, pending=[], chain=Promise.resolve(), pass=localStorage.getItem(PKEY)||'';
+
+function setSync(cls,txt){
+  const el=document.getElementById('sync');
+  el.className='sync '+cls; el.querySelector('span').textContent=txt;
+}
+function askPass(){
+  const v=prompt('공용 비밀번호를 입력하세요', pass||'');
+  if(v===null) return;
+  pass=v.trim(); localStorage.setItem(PKEY,pass); pull(true);
+}
+const headers=()=>({'Content-Type':'application/json','X-Pass':pass});
+
+async function pull(force){
+  if(!pass){ setSync('err','비밀번호 필요 · 탭하세요'); return; }
+  if(pending.length){ flush(); return; }               // 보낼 게 남아 있으면 덮어쓰지 않는다
+  try{
+    const r=await fetch(API,{headers:headers(),cache:'no-store'});
+    if(r.status===401){ setSync('err','비밀번호 오류 · 탭하세요'); return; }
+    if(!r.ok) throw 0;
+    const s=await r.json();
+    if(s.v>ver||force){
+      if(s.data){ db={work:s.data.work||[],book:s.data.book||[],memo:s.data.memo||[]}; save(); renderAll(); }
+      ver=s.v;
+    }
+    setSync('ok','동기화됨');
+  }catch(e){ setSync('off','오프라인'); }
+}
+
+function flush(){
+  chain=chain.then(async()=>{
+    if(!pending.length||!pass) return;
+    const batch=pending.slice();
+    try{
+      const r=await fetch(API,{method:'PUT',headers:headers(),body:JSON.stringify({data:db,base:ver})});
+      if(r.status===401){ setSync('err','비밀번호 오류 · 탭하세요'); return; }
+      if(r.status===409){                                // 다른 기기가 먼저 저장함
+        const s=await r.json();
+        db={work:s.data?.work||[],book:s.data?.book||[],memo:s.data?.memo||[]}; ver=s.v;
+        batch.forEach(fn=>fn(db));                       // 이번 변경만 다시 적용
+        save(); renderAll();
+        return flush();
+      }
+      if(!r.ok) throw 0;
+      ver=(await r.json()).v;
+      pending=pending.filter(fn=>!batch.includes(fn));
+      setSync('ok','동기화됨');
+    }catch(e){ setSync('off','오프라인 · 저장 대기'); }
+  });
+}
+
+/* 모든 변경은 이 함수를 통한다 */
+function mutate(fn){
+  fn(db); save(); renderAll();
+  pending.push(fn); flush();
+}
+
+setInterval(()=>{ if(!document.hidden) (pending.length?flush():pull()); }, 12000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pull(); });
+window.addEventListener('online',()=>pending.length?flush():pull());
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function ymd(d){return d.toLocaleDateString('sv-SE');}
@@ -338,23 +410,31 @@ function upDur(pid){
   el.textContent=fmtHM(mins(tval(pid,'s'),tval(pid,'e')));
 }
 function saveSheet(){
-  PEOPLE.forEach(p=>{
-    const on=document.getElementById('row-'+p.id).classList.contains('on');
-    const ex=getRec(selDate,p.id);
-    if(!on){ if(ex) db.work=db.work.filter(r=>r.id!==ex.id); return; }
-    const o={start:tval(p.id,'s'),end:tval(p.id,'e'),review:Number(document.getElementById(p.id+'-rv').value)||0};
-    if(ex) Object.assign(ex,o);
-    else db.work.push({id:uid(),date:selDate,person:p.id,...o,ok:false});
+  const date=selDate;
+  const input=PEOPLE.map(p=>({
+    pid:p.id, nid:uid(),
+    on:document.getElementById('row-'+p.id).classList.contains('on'),
+    start:tval(p.id,'s'), end:tval(p.id,'e'),
+    review:Number(document.getElementById(p.id+'-rv').value)||0
+  }));
+  sheet.close();
+  mutate(d=>{
+    input.forEach(x=>{
+      const ex=d.work.find(r=>r.date===date&&r.person===x.pid);
+      if(!x.on){ if(ex) d.work=d.work.filter(r=>r!==ex); return; }
+      if(ex) Object.assign(ex,{start:x.start,end:x.end,review:x.review});
+      else d.work.push({id:x.nid,date,person:x.pid,start:x.start,end:x.end,review:x.review,ok:false});
+    });
   });
-  save(); sheet.close(); renderWork();
 }
 
 /* ---------- 예약 ---------- */
 function addBook(){
   if(!bDate.value) return alert('날짜를 선택하세요');
-  db.book.push({id:uid(),date:bDate.value,time:bH.value+':'+bM.value,
-    count:Number(bCount.value)||1,name:bName.value.trim(),ok:false});
-  save(); bName.value=''; renderBook();
+  const rec={id:uid(),date:bDate.value,time:bH.value+':'+bM.value,
+    count:Number(bCount.value)||1,name:bName.value.trim(),ok:false};
+  bName.value='';
+  mutate(d=>d.book.push(rec));
 }
 function renderBook(){
   const f=bFilter.value;
@@ -371,8 +451,9 @@ function renderBook(){
 /* ---------- 메모 ---------- */
 function addMemo(){
   const t=mText.value.trim(); if(!t) return;
-  db.memo.unshift({id:uid(),text:t,at:new Date().toISOString(),ok:false});
-  save(); mText.value=''; renderMemo();
+  const rec={id:uid(),text:t,at:new Date().toISOString(),ok:false};
+  mText.value='';
+  mutate(d=>d.memo.unshift(rec));
 }
 function renderMemo(){
   mPill.textContent=db.memo.filter(m=>!m.ok).length;
@@ -384,8 +465,9 @@ function renderMemo(){
 }
 
 /* ---------- 공통 ---------- */
-function toggle(kind,id){const it=db[kind].find(x=>x.id===id); if(it){it.ok=!it.ok; save(); renderAll();}}
-function del(kind,id){if(!confirm('삭제할까요?'))return; db[kind]=db[kind].filter(x=>x.id!==id); save(); renderAll();}
+function toggle(kind,id){const cur=db[kind].find(x=>x.id===id); if(!cur)return; const v=!cur.ok;
+  mutate(d=>{const it=d[kind].find(x=>x.id===id); if(it) it.ok=v;});}
+function del(kind,id){if(!confirm('삭제할까요?'))return; mutate(d=>{d[kind]=d[kind].filter(x=>x.id!==id);});}
 function renderAll(){renderWork();renderBook();renderMemo();}
 function exportData(){
   const a=document.createElement('a');
@@ -395,9 +477,9 @@ function exportData(){
 function importData(input){
   const f=input.files[0]; if(!f) return;
   const rd=new FileReader();
-  rd.onload=()=>{try{const d=JSON.parse(rd.result);
+  rd.onload=()=>{try{const j=JSON.parse(rd.result);
     if(!confirm('기존 데이터를 덮어씁니다. 계속할까요?'))return;
-    db={work:d.work||[],book:d.book||[],memo:d.memo||[]}; save(); renderAll();
+    mutate(d=>{d.work=j.work||[]; d.book=j.book||[]; d.memo=j.memo||[];});
   }catch(e){alert('파일 형식이 올바르지 않습니다');} input.value='';};
   rd.readAsText(f);
 }
@@ -406,6 +488,15 @@ function importData(input){
 bDate.value=ymd(new Date());
 bH.innerHTML=hourOpts('14'); bM.innerHTML=minOpts('00');
 renderAll();
+
+/* 링크로 비밀번호 전달 가능: ...nodeulgil/#p=비밀번호 */
+const hp=new URLSearchParams(location.hash.slice(1)).get('p');
+if(hp){ pass=hp.trim(); localStorage.setItem(PKEY,pass); history.replaceState(null,'',location.pathname); }
+if(!pass) setSync('err','비밀번호 필요 · 탭하세요');
+pull(true).then(()=>{
+  // 서버가 비어 있는데 이 기기에 기록이 있으면 올려준다
+  if(ver===0 && (db.work.length||db.book.length||db.memo.length)) mutate(()=>{});
+});
 </script>
 </body>
 </html>
