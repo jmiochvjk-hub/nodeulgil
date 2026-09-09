@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "whoami": "wrangler whoami",
+    "secret:pass": "wrangler secret put PASSCODE",
+    "db:list": "wrangler d1 list"
   },
   "keywords": [],
   "author": "",
