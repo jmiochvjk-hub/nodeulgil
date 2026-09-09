@@ -36,7 +36,7 @@ struct WebToolbar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text("pickschedule")
+            Text("pick스케줄")
                 .font(.headline)
                 .lineLimit(1)
 
