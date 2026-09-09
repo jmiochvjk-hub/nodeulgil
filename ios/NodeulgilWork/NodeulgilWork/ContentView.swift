@@ -22,31 +22,74 @@ struct LoginView: View {
     @State private var message = ""
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("동기화") {
-                    SecureField("Cloudflare 비밀번호", text: $passcode)
-                    Button("비밀번호 저장 및 동기화") {
-                        store.savePasscode(passcode)
-                        Task { await store.pull() }
-                    }
-                    Text(store.syncText).foregroundStyle(.secondary)
-                }
+        ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
 
-                Section("로그인") {
-                    SecureField("PIN", text: $pin)
-                        .keyboardType(.numberPad)
-                    Button("입장") {
-                        message = store.login(pin: pin) ? "" : "PIN을 확인해 주세요."
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("노들길")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.blue)
+                        Text("근무기록")
+                            .font(.system(size: 34, weight: .bold))
+                        Text("직원 · 점장 · 관리자")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
-                    if !message.isEmpty {
-                        Text(message).foregroundStyle(.red)
+                    .padding(.top, 42)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Cloudflare 동기화", systemImage: "cloud")
+                            .font(.headline)
+                        SecureField("동기화 비밀번호", text: $passcode)
+                            .textFieldStyle(.roundedBorder)
+                        Button {
+                            store.savePasscode(passcode)
+                            Task { await store.pull() }
+                        } label: {
+                            Label("비밀번호 저장 및 동기화", systemImage: "arrow.triangle.2.circlepath")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        Text(store.syncText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
+                    .padding(18)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("PIN 로그인", systemImage: "lock")
+                            .font(.headline)
+                        SecureField("PIN 4~8자리", text: $pin)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(.roundedBorder)
+                        Button {
+                            message = store.login(pin: pin) ? "" : "PIN을 확인해 주세요."
+                        } label: {
+                            Text("입장")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.black)
+
+                        if !message.isEmpty {
+                            Text(message)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                    .padding(18)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
+                .padding(.horizontal, 22)
+                .padding(.bottom, 30)
             }
-            .navigationTitle("노들길 근무기록")
-            .onAppear { passcode = store.passcode }
         }
+        .onAppear { passcode = store.passcode }
     }
 }
 
