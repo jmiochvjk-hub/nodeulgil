@@ -8,15 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		01A000000000000000000101 /* NodeulgilWorkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000001 /* NodeulgilWorkApp.swift */; };
-		01A000000000000000000102 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000002 /* Models.swift */; };
-		01A000000000000000000103 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000003 /* AppStore.swift */; };
 		01A000000000000000000104 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000004 /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01A000000000000000000001 /* NodeulgilWorkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeulgilWorkApp.swift; sourceTree = "<group>"; };
-		01A000000000000000000002 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		01A000000000000000000003 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
 		01A000000000000000000004 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		01A000000000000000000010 /* NodeulgilWork.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NodeulgilWork.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -44,8 +40,6 @@
 			isa = PBXGroup;
 			children = (
 				01A000000000000000000001 /* NodeulgilWorkApp.swift */,
-				01A000000000000000000002 /* Models.swift */,
-				01A000000000000000000003 /* AppStore.swift */,
 				01A000000000000000000004 /* ContentView.swift */,
 			);
 			path = NodeulgilWork;
@@ -117,8 +111,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				01A000000000000000000101 /* NodeulgilWorkApp.swift in Sources */,
-				01A000000000000000000102 /* Models.swift in Sources */,
-				01A000000000000000000103 /* AppStore.swift in Sources */,
 				01A000000000000000000104 /* ContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -259,7 +251,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -281,7 +273,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
