@@ -336,6 +336,19 @@ tbody tr:last-child td{border-bottom:0}
     </div>
 
     <div class="card">
+      <h3 class="subTitle">직원 관리</h3>
+      <div class="tw">
+        <table>
+          <thead>
+            <tr><th>구분</th><th>이름</th><th>PIN</th><th></th></tr>
+          </thead>
+          <tbody id="managerPeopleBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="managerPeopleEmpty">등록된 직원/알바가 없습니다</div>
+    </div>
+
+    <div class="card">
       <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
       <div class="grid" id="managerGrid"></div>
     </div>
@@ -443,6 +456,19 @@ tbody tr:last-child td{border-bottom:0}
           <div class="row"><div class="f" style="flex:1; min-width:120px"><label>이름</label><input id="aPartTimeName" placeholder="알바"></div><div class="f" style="width:120px"><label>PIN</label><input id="aPartTimePin" maxlength="8" inputmode="numeric" placeholder="숫자"></div></div>
           <button class="btn" onclick="addPartTimeByAdmin()">알바 추가</button>
         </div>
+      </div>
+
+      <div class="card">
+        <h3 class="subTitle">직원/PIN 관리</h3>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr><th>구분</th><th>이름</th><th>PIN</th><th></th></tr>
+            </thead>
+            <tbody id="adminPeopleBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="adminPeopleEmpty">등록된 직원이 없습니다</div>
       </div>
 
       <div class="card">
@@ -1007,6 +1033,34 @@ function renderWorkRows(rows, bodyId, emptyId){
   document.getElementById(emptyId).hidden = rows.length>0;
 }
 
+function roleOptions(current, allowManager){
+  const roles = allowManager
+    ? [['manager','점장'], ['employee','직원'], ['parttime','알바']]
+    : [['employee','직원'], ['parttime','알바']];
+  return roles.map(([value, label]) => `<option value="${value}"${roleClass(current)===value?' selected':''}>${label}</option>`).join('');
+}
+
+function renderPeopleEditor(bodyId, emptyId, people, scope){
+  const body = document.getElementById(bodyId);
+  const empty = document.getElementById(emptyId);
+  if(!body || !empty) return;
+  const rows = people.filter(Boolean);
+  body.innerHTML = rows.map(p=>{
+    const canEditRole = scope === 'admin';
+    return `<tr>
+      <td>
+        <select id="${p.id}-edit-role" ${canEditRole?'':'disabled'} style="min-width:86px">
+          ${roleOptions(p.role, canEditRole)}
+        </select>
+      </td>
+      <td><input id="${p.id}-edit-name" value="${esc(p.name)}" style="min-width:120px"></td>
+      <td><input id="${p.id}-edit-pin" value="${esc(p.pin)}" maxlength="8" inputmode="numeric" style="width:100px"></td>
+      <td><button class="btn ghost sm" onclick="savePersonEdit('${scope}','${p.id}')">저장</button></td>
+    </tr>`;
+  }).join('');
+  empty.hidden = rows.length>0;
+}
+
 function renderStaffPage(){
   setMonthLabels();
   const sid = storeOfSession();
@@ -1050,6 +1104,7 @@ function renderManagerPage(){
   const people = scopedPeople();
   const rows = db.records.filter(r => r.storeId===sid && r.date.startsWith(monthKey(curMonth))).sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
   managerSum.innerHTML = workSummaryHtml(people);
+  renderPeopleEditor('managerPeopleBody', 'managerPeopleEmpty', people.filter(p=>roleClass(p.role)!=='manager'), 'manager');
   renderCalendar('managerGrid', people);
   renderWorkRows(rows, 'managerBody', 'managerEmpty');
   renderReservationList('m', sid);
@@ -1101,6 +1156,7 @@ function renderAdmin(){
 
   setAdminStoreInputs(sid);
   adminSum.innerHTML = workSummaryHtml(people);
+  renderPeopleEditor('adminPeopleBody', 'adminPeopleEmpty', people, 'admin');
   renderCalendar('adminGrid', people);
   renderWorkRows(rows, 'adminBody', 'adminEmpty');
   renderReservationList('a', sid);
@@ -1244,6 +1300,47 @@ function deleteRecord(id){
 }
 
 function pinTaken(pin, excludeId=''){ return db.admins.some(a=>a.pin===pin && a.id!==excludeId) || db.people.some(p=>p.pin===pin && p.id!==excludeId); }
+
+function canManagePerson(person){
+  if(!session || !person) return false;
+  if(session.kind === 'admin') return person.storeId === session.adminStoreId;
+  if(session.kind === 'manager') return person.storeId === session.storeId && roleClass(person.role) !== 'manager';
+  return false;
+}
+
+function savePersonEdit(scope, personId){
+  if(!session || !['admin','manager'].includes(session.kind)) return;
+  const person = db.people.find(p=>p.id===personId);
+  if(!canManagePerson(person)){ alert('수정 권한이 없습니다.'); return; }
+
+  const name = String(document.getElementById(`${personId}-edit-name`)?.value || '').trim();
+  const pin = String(document.getElementById(`${personId}-edit-pin`)?.value || '').trim();
+  const roleInput = document.getElementById(`${personId}-edit-role`);
+  const nextRole = scope === 'admin'
+    ? (['manager','employee','parttime'].includes(roleInput?.value) ? roleInput.value : roleClass(person.role))
+    : roleClass(person.role);
+
+  if(!name || !isValidPin(pin)){ alert('이름과 4~8자리 PIN이 필요합니다.'); return; }
+  if(pinTaken(pin, personId)){ alert('이미 사용 중인 PIN입니다.'); return; }
+
+  mutate(d=>{
+    const target = d.people.find(p=>p.id===personId);
+    if(!target) return;
+    target.name = name;
+    target.pin = pin;
+    target.role = nextRole;
+  });
+
+  if(session.personId === personId){
+    session.name = name;
+    session.pin = pin;
+    session.role = nextRole;
+    session.kind = nextRole === 'manager' ? 'manager' : 'staff';
+  }
+
+  renderAll();
+  alert('직원 정보가 저장되었습니다.');
+}
 
 function changeMyPin(scope){
   if(!session || (session.kind !== 'staff' && session.kind !== 'manager')) return;
