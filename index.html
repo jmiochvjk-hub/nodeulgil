@@ -279,7 +279,10 @@ tbody tr:last-child td{border-bottom:0}
     </div>
 
     <div class="card">
-      <h3 class="subTitle">이번 달 상세</h3>
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
+        <h3 class="subTitle" style="margin:0">이번 달 상세</h3>
+        <button class="btn ghost sm" onclick="exportWorkCsv('staff')">엑셀 내보내기</button>
+      </div>
       <div class="tw">
         <table>
           <thead>
@@ -294,7 +297,10 @@ tbody tr:last-child td{border-bottom:0}
     </div>
 
     <div class="card">
-      <h3 class="subTitle">예약자 등록 및 알림</h3>
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
+        <h3 class="subTitle" style="margin:0">예약자 등록 및 알림</h3>
+        <button class="btn ghost sm" onclick="exportReservationsCsv('staff')">예약 엑셀</button>
+      </div>
       <div class="row" style="margin-bottom:8px">
         <div class="f"><label>날짜</label><input id="sResDate" type="date"></div>
         <div class="f"><label>시간</label><input id="sResTime" type="time"></div>
@@ -354,7 +360,10 @@ tbody tr:last-child td{border-bottom:0}
     </div>
 
     <div class="card">
-      <h3 class="subTitle">이번 달 상세</h3>
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
+        <h3 class="subTitle" style="margin:0">이번 달 상세</h3>
+        <button class="btn ghost sm" onclick="exportWorkCsv('manager')">엑셀 내보내기</button>
+      </div>
       <div class="tw">
         <table>
           <thead>
@@ -378,7 +387,10 @@ tbody tr:last-child td{border-bottom:0}
     </div>
 
     <div class="card">
-      <h3 class="subTitle">예약자 등록 및 알림</h3>
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
+        <h3 class="subTitle" style="margin:0">예약자 등록 및 알림</h3>
+        <button class="btn ghost sm" onclick="exportReservationsCsv('manager')">예약 엑셀</button>
+      </div>
       <div class="row" style="margin-bottom:8px">
         <div class="f"><label>날짜</label><input id="mResDate" type="date"></div>
         <div class="f"><label>시간</label><input id="mResTime" type="time"></div>
@@ -490,7 +502,10 @@ tbody tr:last-child td{border-bottom:0}
       </div>
 
       <div class="card">
-        <h3 class="subTitle">근무 시간 상세</h3>
+        <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
+          <h3 class="subTitle" style="margin:0">근무 시간 상세</h3>
+          <button class="btn ghost sm" onclick="exportWorkCsv('admin')">엑셀 내보내기</button>
+        </div>
         <div class="tw">
           <table>
             <thead>
@@ -503,7 +518,10 @@ tbody tr:last-child td{border-bottom:0}
       </div>
 
       <div class="card">
-        <h3 class="subTitle">예약자 등록 및 알림</h3>
+        <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px">
+          <h3 class="subTitle" style="margin:0">예약자 등록 및 알림</h3>
+          <button class="btn ghost sm" onclick="exportReservationsCsv('admin')">예약 엑셀</button>
+        </div>
         <div class="f" style="margin-bottom:8px"><label>선택 점포</label><input id="adminResStore" disabled></div>
         <div class="row" style="margin-bottom:8px">
           <div class="f"><label>날짜</label><input id="aResDate" type="date"></div>
@@ -1031,6 +1049,86 @@ function renderWorkRows(rows, bodyId, emptyId){
     </tr>`;
   }).join('');
   document.getElementById(emptyId).hidden = rows.length>0;
+}
+
+function csvCell(value){
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(filename, rows){
+  const csv = '\uFEFF' + rows.map(row=>row.map(csvCell).join(',')).join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function safeFilename(text){
+  return String(text || 'nodeulgil').replace(/[\\/:*?"<>|]/g, '_').trim() || 'nodeulgil';
+}
+
+function exportWorkCsv(){
+  if(!session) return;
+  const sid = storeOfSession();
+  if(!sid){ alert('점포를 선택해 주세요.'); return; }
+  const shop = getStore(sid);
+  const rows = db.records
+    .filter(r=>r.storeId===sid && r.date.startsWith(monthKey(curMonth)) && canViewRecord(r))
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  if(!rows.length){ alert('내보낼 근무기록이 없습니다.'); return; }
+
+  const csvRows = [['날짜','요일','구분','이름','출근','퇴근','근무시간(분)','근무시간','리뷰','특이사항','확인']];
+  rows.forEach(r=>{
+    const p = getPerson(r.staffId);
+    const d = new Date(r.date+'T00:00:00');
+    const total = mins(r.start, r.end);
+    csvRows.push([
+      r.date,
+      DOW[d.getDay()],
+      roleLabel(p?.role),
+      p?.name || '미확인',
+      r.start,
+      r.end,
+      total,
+      fm(total),
+      r.review || 0,
+      r.note || '',
+      r.ok ? '확인' : ''
+    ]);
+  });
+
+  downloadCsv(`${safeFilename(shop?.name)}_${monthKey(curMonth)}_근무기록.csv`, csvRows);
+}
+
+function exportReservationsCsv(){
+  if(!session) return;
+  const sid = storeOfSession();
+  if(!sid){ alert('점포를 선택해 주세요.'); return; }
+  const shop = getStore(sid);
+  const rows = db.reservations
+    .filter(r=>r.storeId===sid && r.datetime.startsWith(monthKey(curMonth)))
+    .sort((a,b)=>a.datetime.localeCompare(b.datetime));
+  if(!rows.length){ alert('내보낼 예약 내역이 없습니다.'); return; }
+
+  const csvRows = [['날짜','시간','고객명','연락처','알림(분 전)','특이사항','알림상태']];
+  rows.forEach(r=>{
+    csvRows.push([
+      String(r.datetime || '').slice(0,10),
+      String(r.datetime || '').slice(11,16),
+      r.customer || '',
+      r.phone || '',
+      r.remindMin || 0,
+      r.memo || '',
+      r.notified ? '알림보냄' : ''
+    ]);
+  });
+
+  downloadCsv(`${safeFilename(shop?.name)}_${monthKey(curMonth)}_예약내역.csv`, csvRows);
 }
 
 function roleOptions(current, allowManager){
