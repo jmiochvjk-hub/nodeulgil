@@ -18,62 +18,80 @@ struct ContentView: View {
 struct LoginView: View {
     @EnvironmentObject private var store: AppStore
     @State private var pin = ""
-    @State private var passcode = ""
     @State private var message = ""
 
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+        GeometryReader { proxy in
+            ZStack {
+                Color.white.ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("노들길")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.blue)
-                        Text("근무기록")
-                            .font(.system(size: 34, weight: .bold))
-                        Text("직원 · 점장 · 관리자")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 42)
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Cloudflare 동기화", systemImage: "cloud")
-                            .font(.headline)
-                        SecureField("동기화 비밀번호", text: $passcode)
-                            .textFieldStyle(.roundedBorder)
-                        Button {
-                            store.savePasscode(passcode)
-                            Task { await store.pull() }
-                        } label: {
-                            Label("비밀번호 저장 및 동기화", systemImage: "arrow.triangle.2.circlepath")
-                                .frame(maxWidth: .infinity)
+                VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("노들길")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.blue)
+                                Text("근무기록")
+                                    .font(.system(size: 32, weight: .heavy))
+                            }
+                            Spacer()
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.system(size: 30, weight: .semibold))
+                                .foregroundStyle(.blue)
+                                .frame(width: 56, height: 56)
+                                .background(Color.blue.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
-                        .buttonStyle(.borderedProminent)
-                        Text(store.syncText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(18)
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("PIN 로그인", systemImage: "lock")
-                            .font(.headline)
+                        HStack(spacing: 8) {
+                            RolePill(text: "직원")
+                            RolePill(text: "점장")
+                            RolePill(text: "관리자")
+                        }
+                    }
+                    .padding(.top, max(24, proxy.safeAreaInsets.top + 12))
+                    .padding(.horizontal, 24)
+
+                    Spacer(minLength: 28)
+
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("PIN 로그인")
+                                .font(.system(size: 22, weight: .bold))
+                            Text("등록된 PIN을 입력해 주세요.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
                         SecureField("PIN 4~8자리", text: $pin)
                             .keyboardType(.numberPad)
-                            .textFieldStyle(.roundedBorder)
+                            .textContentType(.oneTimeCode)
+                            .font(.system(size: 22, weight: .semibold))
+                            .padding(.horizontal, 16)
+                            .frame(height: 56)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
                         Button {
                             message = store.login(pin: pin) ? "" : "PIN을 확인해 주세요."
                         } label: {
                             Text("입장")
+                                .font(.system(size: 17, weight: .bold))
                                 .frame(maxWidth: .infinity)
+                                .frame(height: 54)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.black)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.white)
+                        .background(Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        HStack(spacing: 8) {
+                            Image(systemName: store.syncText.contains("됨") || store.syncText.contains("저장") ? "checkmark.circle.fill" : "icloud")
+                            Text(store.syncText)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                         if !message.isEmpty {
                             Text(message)
@@ -81,15 +99,41 @@ struct LoginView: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    .padding(18)
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .padding(20)
+                    .frame(maxWidth: 430)
+                    .background(Color(.systemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(Color(.separator).opacity(0.35), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.08), radius: 20, y: 10)
+                    .padding(.horizontal, 20)
+
+                    Spacer(minLength: 24)
+
+                    Text("Cloudflare 동기화는 앱 내부 설정으로 처리됩니다.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, max(18, proxy.safeAreaInsets.bottom + 12))
                 }
-                .padding(.horizontal, 22)
-                .padding(.bottom, 30)
             }
         }
-        .onAppear { passcode = store.passcode }
+    }
+}
+
+struct RolePill: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(Capsule())
     }
 }
 

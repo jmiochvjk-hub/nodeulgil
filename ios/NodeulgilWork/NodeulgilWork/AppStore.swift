@@ -9,7 +9,7 @@ final class AppStore: ObservableObject {
     @Published var selectedMonth = Date()
     @Published var selectedStoreId: String?
     @Published var syncText = "동기화 대기"
-    @Published var passcode = UserDefaults.standard.string(forKey: "nodeulgil-pass") ?? ""
+    @Published var passcode = Bundle.main.object(forInfoDictionaryKey: "NODEULGIL_API_PASSCODE") as? String ?? ""
 
     private let apiURL = URL(string: "https://nodeulgil-api.jmiochvjk.workers.dev/data")!
     private let storageKey = "nodeulgil-ios-db"
