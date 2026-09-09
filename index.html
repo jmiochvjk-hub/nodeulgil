@@ -17,6 +17,8 @@
   --warn:#c94040;
   --employee:#2f63ff;
   --employee-soft:#edf2ff;
+  --parttime:#f3a34d;
+  --parttime-soft:#fff6ea;
   --manager:#12907f;
   --manager-soft:#e7f6f3;
   --shadow:0 10px 30px rgba(18,24,40,.07);
@@ -131,7 +133,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .dot.employee{background:var(--employee)}
 .dot.manager{background:var(--manager)}
+.dot.parttime{background:var(--parttime)}
 .pcard.manager{background:var(--manager-soft)}
+.pcard.parttime{background:var(--parttime-soft)}
 .pcard .big{font-size:24px; font-variant-numeric:tabular-nums; font-weight:800; letter-spacing:-.5px}
 .pcard .big span{font-size:12px; color:var(--muted); font-weight:600}
 .pcard .sub{font-size:12px; color:var(--muted)}
@@ -168,6 +172,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 }
 .chip.employee{background:var(--employee-soft); color:var(--employee)}
 .chip.manager{background:var(--manager-soft); color:var(--manager)}
+.chip.parttime{background:var(--parttime-soft); color:var(--parttime)}
 .rv{font-size:9px; text-align:center; color:var(--muted); margin-top:auto}
 
 dialog{border:0; padding:0; background:transparent; width:100%; max-width:100%; margin:auto auto 0}
@@ -185,6 +190,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .prow{border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px}
 .prow.on.employee{border-color:var(--employee); background:var(--employee-soft)}
 .prow.on.manager{border-color:var(--manager); background:var(--manager-soft)}
+.prow.on.parttime{border-color:var(--parttime); background:var(--parttime-soft)}
 .prow .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
 .prow .nm{display:flex; align-items:center; gap:6px; font-weight:700}
 .sw{
@@ -258,6 +264,16 @@ tbody tr:last-child td{border-bottom:0}
     </div>
 
     <div class="card">
+      <h3 class="subTitle">PIN 변경</h3>
+      <div class="row" style="margin-bottom:8px">
+        <div class="f" style="width:140px"><label>새 PIN</label><input id="sNewPin" maxlength="8" inputmode="numeric" placeholder="숫자 4~8자리"></div>
+        <div class="f" style="width:140px"><label>PIN 확인</label><input id="sNewPinConfirm" maxlength="8" inputmode="numeric" placeholder="숫자 확인"></div>
+        <button class="btn" onclick="changeMyPin('staff')">PIN 변경</button>
+      </div>
+      <div class="small" id="sPinHint">직원/알바용으로 PIN을 변경합니다.</div>
+    </div>
+
+    <div class="card">
       <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
       <div class="grid" id="staffGrid"></div>
     </div>
@@ -303,8 +319,9 @@ tbody tr:last-child td{border-bottom:0}
 
     <div class="card">
       <div class="row" style="margin-bottom:10px">
-        <div class="f" style="flex:1; min-width:150px"><label>직원 추가</label><input id="mStaffName" placeholder="직원 이름"></div>
-        <div class="f" style="width:130px"><label>직원 PIN</label><input id="mStaffPin" maxlength="8" inputmode="numeric" placeholder="숫자"></div>
+        <div class="f" style="flex:1; min-width:140px"><label>이름</label><input id="mStaffName" placeholder="이름"></div>
+        <div class="f" style="width:90px"><label>구분</label><select id="mStaffType"><option value="employee">직원</option><option value="parttime">알바</option></select></div>
+        <div class="f" style="width:130px"><label>PIN</label><input id="mStaffPin" maxlength="8" inputmode="numeric" placeholder="숫자"></div>
         <button class="btn" onclick="addStaffByManager()">추가</button>
       </div>
 
@@ -336,6 +353,15 @@ tbody tr:last-child td{border-bottom:0}
         </table>
       </div>
       <div class="empty" id="managerEmpty">기록이 없습니다</div>
+    </div>
+
+    <div class="card">
+      <h3 class="subTitle">PIN 변경</h3>
+      <div class="row" style="margin-bottom:8px">
+        <div class="f" style="width:140px"><label>새 PIN</label><input id="mNewPin" maxlength="8" inputmode="numeric" placeholder="숫자 4~8자리"></div>
+        <div class="f" style="width:140px"><label>PIN 확인</label><input id="mNewPinConfirm" maxlength="8" inputmode="numeric" placeholder="숫자 확인"></div>
+        <button class="btn" onclick="changeMyPin('manager')">PIN 변경</button>
+      </div>
     </div>
 
     <div class="card">
@@ -384,6 +410,20 @@ tbody tr:last-child td{border-bottom:0}
         <h3 class="subTitle" id="adminStoreHeader" style="margin:0">점포 관리</h3>
       </div>
 
+      <div class="card">
+        <div class="row" style="justify-content:space-between; gap:10px; align-items:center">
+          <h3 class="subTitle" style="margin:0">점포 정보</h3>
+          <div class="row" style="gap:6px; margin:0">
+            <button class="btn ghost sm" onclick="renameCurrentAdminStore()">점포명 저장</button>
+            <button class="btn ghost sm" style="color:#9a2a2a; border-color:#f3c3c3" onclick="deleteCurrentAdminStore()">점포 삭제</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="f" style="flex:1; min-width:200px"><label>점포명</label><input id="adminStoreNameInput" placeholder="점포명"></div>
+          <div class="f" style="width:120px"><label>현재 직원수</label><input id="adminStorePeopleCount" disabled style="text-align:right"></div>
+        </div>
+      </div>
+
       <div class="row" style="margin-bottom:10px">
         <div class="card" style="flex:1; min-width:260px">
           <h3 class="subTitle">점장 추가</h3>
@@ -392,10 +432,16 @@ tbody tr:last-child td{border-bottom:0}
           <button class="btn" onclick="addManagerByAdmin()">점장 추가</button>
         </div>
         <div class="card" style="flex:1; min-width:260px">
-          <h3 class="subTitle">알바 추가</h3>
+          <h3 class="subTitle">직원 추가</h3>
           <div class="f"><label>점포</label><input id="aStaffStoreLabel" disabled></div>
           <div class="row"><div class="f" style="flex:1; min-width:120px"><label>이름</label><input id="aStaffName" placeholder="직원"></div><div class="f" style="width:120px"><label>PIN</label><input id="aStaffPin" maxlength="8" inputmode="numeric" placeholder="숫자"></div></div>
-          <button class="btn" onclick="addStaffByAdmin()">알바 추가</button>
+          <button class="btn" onclick="addStaffByAdmin()">직원 추가</button>
+        </div>
+        <div class="card" style="flex:1; min-width:260px">
+          <h3 class="subTitle">알바 추가</h3>
+          <div class="f"><label>점포</label><input id="aPartTimeStoreLabel" disabled></div>
+          <div class="row"><div class="f" style="flex:1; min-width:120px"><label>이름</label><input id="aPartTimeName" placeholder="알바"></div><div class="f" style="width:120px"><label>PIN</label><input id="aPartTimePin" maxlength="8" inputmode="numeric" placeholder="숫자"></div></div>
+          <button class="btn" onclick="addPartTimeByAdmin()">알바 추가</button>
         </div>
       </div>
 
@@ -490,6 +536,16 @@ function fm(m){ const h=Math.floor(m/60), mm=m%60; return `${h}시간 ${mm?mm+'�
 function hourOpts(v){ let o=''; for(let i=0;i<24;i++){ const x=pad(i); o+=`<option value="${x}"${x===v?' selected':''}>${x}</option>`;} return o; }
 function minOpts(v){ let o=''; for(let i=0;i<60;i+=5){ const x=pad(i); o+=`<option value="${x}"${x===v?' selected':''}>${x}</option>`;} return o; }
 function isValidPin(v){ return /^\d{4,8}$/.test(v); }
+function roleClass(role){
+  if(role === 'manager') return 'manager';
+  if(role === 'parttime') return 'parttime';
+  return 'employee';
+}
+function roleLabel(role){
+  if(role === 'manager') return '점장';
+  if(role === 'parttime') return '알바';
+  return '직원';
+}
 function setSyncState(state,text){ const el=document.getElementById('sync'); el.className=`sync ${state}`; el.querySelector('span').textContent=text; }
 function saveDb(){ localStorage.setItem(KEY, JSON.stringify(db)); }
 
@@ -526,7 +582,7 @@ function migrate(raw){
       storeId:p.storeId || fallbackStore,
       name:String(p.name || '이름없음').trim(),
       pin:isValidPin(p.pin) ? p.pin : uid('pin').slice(0,8),
-      role: p.role === 'manager' ? 'manager' : 'employee'
+      role: p.role === 'manager' ? 'manager' : p.role === 'parttime' ? 'parttime' : 'employee'
     };
     if(usedPins.has(person.pin)) person.pin = `${1000 + Math.floor(Math.random()*9000)}`.padStart(4,'0');
     usedPins.add(person.pin);
@@ -661,8 +717,8 @@ function setRoleBadge(){
   const el = document.getElementById('roleBadge');
   if(!session){ el.textContent = '로그인 전'; return; }
   if(session.kind === 'admin') el.textContent = `관리자 ${session.name}`;
-  else if(session.kind === 'manager') el.textContent = `점장 ${session.name}`;
-  else el.textContent = `직원 ${session.name}`;
+  else if(session.kind === 'manager') el.textContent = `${roleLabel(session.role)} ${session.name}`;
+  else el.textContent = `${roleLabel(session.role)} ${session.name}`;
 }
 
 function formatMonthLabel(d){ return `${d.getFullYear()}년 ${d.getMonth()+1}월`; }
@@ -701,6 +757,7 @@ function loginWithPin(){
 
   session = {
     kind: person.role === 'manager' ? 'manager' : 'staff',
+    role: person.role || 'employee',
     personId: person.id,
     storeId: person.storeId,
     name: person.name,
@@ -749,17 +806,25 @@ function setAdminStoreInputs(sid){
   if(!session || session.kind !== 'admin') return;
   const shop = getStore(sid);
   const storeName = shop ? shop.name : '';
+  const storeCount = shop ? peopleInStore(sid).length : 0;
+  const nameInput = document.getElementById('adminStoreNameInput');
+  const countInput = document.getElementById('adminStorePeopleCount');
   const resStore = document.getElementById('adminResStore');
   const listBadge = document.getElementById('adminStoreNameBadge');
   const header = document.getElementById('adminStoreHeader');
   const mLabel = document.getElementById('aManagerStoreLabel');
   const sLabel = document.getElementById('aStaffStoreLabel');
+  const ptLabel = document.getElementById('aPartTimeStoreLabel');
+
+  if(nameInput) nameInput.value = storeName;
+  if(countInput) countInput.value = String(storeCount);
 
   if(resStore) resStore.value = storeName;
   if(listBadge) listBadge.value = storeName;
   if(header) header.textContent = `점포 관리 ${storeName ? `- ${storeName}` : ''}`;
   if(mLabel) mLabel.value = storeName;
   if(sLabel) sLabel.value = storeName;
+  if(ptLabel) ptLabel.value = storeName;
 }
 
 function enterAdminStore(storeId){
@@ -889,7 +954,7 @@ function renderCalendar(containerId, people){
     const chips = people.map(p=>{
       const rec = rows.find(x => x.date===ds && x.staffId===p.id);
       if(!rec) return '';
-      return `<div class="chip ${p.role==='manager'?'manager':'employee'}">${esc(p.name[0])} ${rec.start.slice(0,5)}-${rec.end.slice(0,5)}</div>`;
+      return `<div class="chip ${roleClass(p.role)}">${esc(p.name[0])} ${rec.start.slice(0,5)}-${rec.end.slice(0,5)}</div>`;
     }).join('');
 
     const rv = rows.reduce((sum, r) => {
@@ -913,8 +978,8 @@ function workSummaryHtml(stores){
     const rows = db.records.filter(r=>r.storeId===p.storeId && r.date.startsWith(monthKey(curMonth)) && r.staffId===p.id);
     const total = rows.reduce((s,r)=>s+mins(r.start,r.end),0);
     const review = rows.reduce((s,r)=>s+(r.review||0),0);
-    return `<div class="pcard ${p.role==='manager'?'manager':''}">
-      <div class="nm"><i class="dot ${p.role==='manager'?'manager':'employee'}"></i>${esc(p.name)}</div>
+    return `<div class="pcard ${roleClass(p.role)}">
+      <div class="nm"><i class="dot ${roleClass(p.role)}"></i>${esc(p.name)}</div>
       <div class="big">${(total/60).toFixed(1)}<span>시간</span></div>
       <div class="sub">${rows.length}일 근무 · 리뷰 ${review}건</div>
     </div>`;
@@ -930,7 +995,7 @@ function renderWorkRows(rows, bodyId, emptyId){
     return `<tr>
       <td>${r.date.slice(5)}</td>
       <td>${DOW[d.getDay()]}</td>
-      <td><i class="dot ${p?.role==='manager'?'manager':'employee'}"></i> ${esc(p?.name || '미확인')}</td>
+      <td><i class="dot ${roleClass(p?.role)}"></i> ${esc(p?.name || '미확인')}</td>
       <td>${r.start} ~ ${r.end}</td>
       <td><b>${fm(mins(r.start,r.end))}</b></td>
       <td>${r.review||0}</td>
@@ -954,7 +1019,7 @@ function renderStaffPage(){
   const ownRows = monthRows.filter(r=>r.staffId===session.personId);
 
   staffSum.innerHTML =
-    `<div class="pcard"><div class="nm"><i class="dot employee"></i>${esc(ownPerson?.name||'직원')}</div><div class="big">${(ownRows.reduce((s,r)=>s+mins(r.start,r.end),0)/60).toFixed(1)}<span>시간</span></div><div class="sub">내 근무 ${ownRows.length}일 · 리뷰 ${ownRows.reduce((s,r)=>s+(r.review||0),0)}건</div></div>`;
+    `<div class="pcard ${roleClass(ownPerson?.role)}"><div class="nm"><i class="dot ${roleClass(ownPerson?.role)}"></i>${esc(ownPerson?.name||'직원')}</div><div class="big">${(ownRows.reduce((s,r)=>s+mins(r.start,r.end),0)/60).toFixed(1)}<span>시간</span></div><div class="sub">내 근무 ${ownRows.length}일 · 리뷰 ${ownRows.reduce((s,r)=>s+(r.review||0),0)}건</div></div>`;
 
   const coworkRows = people
     .filter(p=>p.id!==session.personId)
@@ -966,7 +1031,7 @@ function renderStaffPage(){
     })
     .filter(x=>x.count)
     .map(x=>{
-      return `<div class="pcard"><div class="nm"><i class="dot ${x.p.role==='manager'?'manager':'employee'}"></i>${esc(x.p.name)}</div><div class="big">${(x.total/60).toFixed(1)}<span>시간</span></div><div class="sub">${x.count}일 근무 · 리뷰 ${x.review}건</div></div>`;
+      return `<div class="pcard ${roleClass(x.p.role)}"><div class="nm"><i class="dot ${roleClass(x.p.role)}"></i>${esc(x.p.name)}</div><div class="big">${(x.total/60).toFixed(1)}<span>시간</span></div><div class="sub">${x.count}일 근무 · 리뷰 ${x.review}건</div></div>`;
     }).join('');
 
   staffSum.innerHTML += coworkRows;
@@ -1010,10 +1075,13 @@ function renderAdmin(){
     }
     db.shops.forEach(s=>{
       const ps = peopleInStore(s.id);
+      const managerCount = ps.filter(p=>p.role==='manager').length;
+      const employeeCount = ps.filter(p=>roleClass(p.role)==='employee').length;
+      const parttimeCount = ps.filter(p=>roleClass(p.role)==='parttime').length;
       const rr = db.records.filter(r=>r.storeId===s.id && r.date.startsWith(k));
       const total = rr.reduce((sum,r)=>sum+mins(r.start,r.end),0);
       const review = rr.reduce((sum,r)=>sum+(r.review||0),0);
-      wrap.innerHTML += `<div class="pcard" style="margin-bottom:8px; cursor:pointer" onclick="enterAdminStore('${s.id}')"><div class="nm"><i class="dot employee"></i>${esc(s.name)}</div><div class="sub">직원 ${ps.length}명 / 점장: ${esc(ps.find(x=>x.role==='manager')?.name || '미설정')} / ${(total/60).toFixed(1)}시간 · 리뷰 ${review}건</div></div>`;
+      wrap.innerHTML += `<div class="pcard" style="margin-bottom:8px; cursor:pointer" onclick="enterAdminStore('${s.id}')"><div class="nm"><i class="dot manager"></i>${esc(s.name)}</div><div class="sub">점장 ${managerCount}명 · 직원 ${employeeCount}명 · 알바 ${parttimeCount}명 / ${(total/60).toFixed(1)}시간 · 리뷰 ${review}건</div></div>`;
     });
     return;
   }
@@ -1083,7 +1151,7 @@ function openSheet(ds){
 
     return `<div class="prow ${p.role} ${enabled?'on':''}" id="row-${p.id}">
       <div class="top">
-        <div class="nm"><i class="dot ${p.role==='manager'?'manager':'employee'}"></i>${esc(p.name)}</div>
+        <div class="nm"><i class="dot ${roleClass(p.role)}"></i>${esc(p.name)}</div>
         ${session.kind === 'admin' || session.kind === 'manager' ? `<div class="sw" onclick="toggleRow('${p.id}')"></div>` : ''}
       </div>
       <div class="fields${session.kind==='manager' || session.kind==='admin' ? (enabled? '' : ' hide') : ''}">
@@ -1177,13 +1245,34 @@ function deleteRecord(id){
 
 function pinTaken(pin, excludeId=''){ return db.admins.some(a=>a.pin===pin && a.id!==excludeId) || db.people.some(p=>p.pin===pin && p.id!==excludeId); }
 
+function changeMyPin(scope){
+  if(!session || (session.kind !== 'staff' && session.kind !== 'manager')) return;
+  const prefix = scope === 'manager' ? 'm' : 's';
+  const newPin = String(document.getElementById(`${prefix}NewPin`).value || '').trim();
+  const confirmPin = String(document.getElementById(`${prefix}NewPinConfirm`).value || '').trim();
+  if(!isValidPin(newPin) || !isValidPin(confirmPin)){ alert('PIN은 숫자 4~8자리여야 합니다.'); return; }
+  if(newPin !== confirmPin){ alert('PIN이 서로 다릅니다.'); return; }
+  if(pinTaken(newPin, session.personId)){ alert('이미 사용 중인 PIN입니다.'); return; }
+
+  mutate(d => {
+    const person = d.people.find(x => x.id === session.personId);
+    if(!person){ alert('사용자 정보를 찾지 못했습니다.'); return; }
+    person.pin = newPin;
+  });
+  session.pin = newPin;
+  document.getElementById(`${prefix}NewPin`).value = '';
+  document.getElementById(`${prefix}NewPinConfirm`).value = '';
+  alert('PIN이 변경되었습니다.');
+}
+
 function addStaffByManager(){
   if(!session || session.kind !== 'manager'){ alert('점장만 추가 가능합니다.'); return; }
   const name = String(document.getElementById('mStaffName').value || '').trim();
   const pin = String(document.getElementById('mStaffPin').value || '').trim();
+  const role = String(document.getElementById('mStaffType').value || '').trim() === 'parttime' ? 'parttime' : 'employee';
   if(!name || !isValidPin(pin)){ alert('이름과 4~8자리 PIN이 필요합니다.'); return; }
   if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
-  mutate(d=>{ d.people.push({ id:uid('person'), storeId: session.storeId, name, pin, role:'employee' }); });
+  mutate(d=>{ d.people.push({ id:uid('person'), storeId: session.storeId, name, pin, role }); });
   document.getElementById('mStaffName').value=''; document.getElementById('mStaffPin').value='';
   renderManagerPage();
 }
@@ -1208,6 +1297,43 @@ function addStoreByAdmin(){
   renderAdmin();
 }
 
+function renameCurrentAdminStore(){
+  if(!session || session.kind !== 'admin') return;
+  const sid = session.adminStoreId;
+  const shop = getStore(sid);
+  const nextName = String(document.getElementById('adminStoreNameInput').value || '').trim();
+  if(!sid || !shop) return;
+  if(!nextName){ alert('점포명을 입력해 주세요.'); return; }
+  mutate(d=>{ const s=d.shops.find(x=>x.id===sid); if(s) s.name = nextName; });
+  setAdminStoreInputs(sid);
+  renderAdmin();
+}
+
+function deleteCurrentAdminStore(){
+  if(!session || session.kind !== 'admin') return;
+  const sid = session.adminStoreId;
+  const shop = getStore(sid);
+  if(!sid || !shop) return;
+  if(db.shops.length <= 1){
+    alert('최소 1개 점포는 남겨야 합니다.');
+    return;
+  }
+  if(!confirm(`점포 "${shop.name}"를 삭제하면 직원/근무기록/예약이 모두 삭제됩니다. 삭제할까요?`)) return;
+
+  mutate(d=>{
+    d.shops = d.shops.filter(s=>s.id!==sid);
+    d.people = d.people.filter(p=>p.storeId!==sid);
+    d.records = d.records.filter(r=>r.storeId!==sid);
+    d.reservations = d.reservations.filter(r=>r.storeId!==sid);
+  });
+
+  session.adminMode = 'list';
+  session.adminStoreId = null;
+  setAdminPageVisibility();
+  setAdminStoreInputs('');
+  renderAdmin();
+}
+
 function addManagerByAdmin(){
   if(!session || session.kind !== 'admin'){ alert('관리자만 가능합니다.'); return; }
   const storeId = session.adminStoreId;
@@ -1229,6 +1355,19 @@ function addStaffByAdmin(){
   if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
   mutate(d=>{ d.people.push({ id:uid('person'), storeId, name, pin, role:'employee' }); });
   document.getElementById('aStaffName').value=''; document.getElementById('aStaffPin').value='';
+  renderAdmin();
+}
+
+function addPartTimeByAdmin(){
+  if(!session || session.kind !== 'admin'){ alert('관리자만 가능합니다.'); return; }
+  const storeId = session.adminStoreId;
+  const name = String(document.getElementById('aPartTimeName').value || '').trim();
+  const pin = String(document.getElementById('aPartTimePin').value || '').trim();
+  if(!storeId || !name || !isValidPin(pin)){ alert('점포/이름/PIN 확인'); return; }
+  if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  mutate(d=>{ d.people.push({ id:uid('person'), storeId, name, pin, role:'parttime' }); });
+  document.getElementById('aPartTimeName').value='';
+  document.getElementById('aPartTimePin').value='';
   renderAdmin();
 }
 
