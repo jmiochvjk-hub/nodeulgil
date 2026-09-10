@@ -9,11 +9,13 @@
 /* Begin PBXBuildFile section */
 		01A000000000000000000101 /* NodeulgilWorkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000001 /* NodeulgilWorkApp.swift */; };
 		01A000000000000000000104 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000004 /* ContentView.swift */; };
+		01A000000000000000000105 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000005 /* index.html */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01A000000000000000000001 /* NodeulgilWorkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeulgilWorkApp.swift; sourceTree = "<group>"; };
 		01A000000000000000000004 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		01A000000000000000000005 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = index.html; path = ../../../index.html; sourceTree = "<group>"; };
 		01A000000000000000000010 /* NodeulgilWork.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NodeulgilWork.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -41,6 +43,7 @@
 			children = (
 				01A000000000000000000001 /* NodeulgilWorkApp.swift */,
 				01A000000000000000000004 /* ContentView.swift */,
+				01A000000000000000000005 /* index.html */,
 			);
 			path = NodeulgilWork;
 			sourceTree = "<group>";
@@ -62,6 +65,7 @@
 			buildPhases = (
 				01A000000000000000000070 /* Sources */,
 				01A000000000000000000020 /* Frameworks */,
+				01A000000000000000000071 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -104,6 +108,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		01A000000000000000000071 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				01A000000000000000000105 /* index.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		01A000000000000000000070 /* Sources */ = {
@@ -240,11 +255,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = pickedule;
+				INFOPLIST_KEY_CFBundleDisplayName = "pick스케줄";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nodeulgil.worklog;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pickschedule.worklog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -262,11 +277,11 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = pickedule;
+				INFOPLIST_KEY_CFBundleDisplayName = "pick스케줄";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nodeulgil.worklog;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pickschedule.worklog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

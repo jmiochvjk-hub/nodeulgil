@@ -1,8 +1,6 @@
 import SwiftUI
 import WebKit
 
-private let nodeulgilURL = URL(string: "https://jmiochvjk-hub.github.io/nodeulgil/")!
-
 struct ContentView: View {
     @StateObject private var webState = WebViewState()
 
@@ -10,7 +8,7 @@ struct ContentView: View {
         ZStack {
             Color.white.ignoresSafeArea()
 
-            WebView(url: nodeulgilURL, state: webState)
+            WebView(state: webState)
                 .ignoresSafeArea(.container, edges: .bottom)
 
             if webState.isLoading {
@@ -84,7 +82,6 @@ final class WebViewState: ObservableObject {
 }
 
 struct WebView: UIViewRepresentable {
-    let url: URL
     @ObservedObject var state: WebViewState
 
     func makeCoordinator() -> Coordinator {
@@ -102,7 +99,11 @@ struct WebView: UIViewRepresentable {
         webView.scrollView.keyboardDismissMode = .interactive
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
         state.webView = webView
-        webView.load(URLRequest(url: url))
+        if let url = Bundle.main.url(forResource: "index", withExtension: "html") {
+            webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        } else if let fallbackURL = URL(string: "https://jmiochvjk-hub.github.io/nodeulgil/") {
+            webView.load(URLRequest(url: fallbackURL))
+        }
         return webView
     }
 
