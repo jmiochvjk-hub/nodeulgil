@@ -572,7 +572,7 @@ tbody tr:last-child td{border-bottom:0}
       <div class="card">
         <h3 class="subTitle">점포 추가</h3>
         <div class="row" style="margin-bottom:8px">
-          <div class="f" style="flex:1; min-width:150px"><label>점포명</label><input id="aStoreName" placeholder="예: 노들길2호점"></div>
+          <div class="f" style="flex:1; min-width:150px"><label>점포명</label><input id="aStoreName" placeholder="예: 2호점"></div>
           <div class="f" style="flex:1; min-width:140px"><label>점장 이름</label><input id="aManagerName" placeholder="점장님"></div>
           <div class="f" style="width:130px"><label>점장 PIN</label><input id="aManagerPin" maxlength="8" inputmode="numeric" placeholder="숫자"></div>
         </div>
@@ -602,7 +602,7 @@ tbody tr:last-child td{border-bottom:0}
           </div>
           <div class="f" id="aInviteStoreNameRow" style="flex:1; min-width:170px; display:none">
             <label id="aInviteStoreNameLabel">새 점포명</label>
-            <input id="aInviteStoreName" placeholder="예: 노들길3호점">
+            <input id="aInviteStoreName" placeholder="예: 3호점">
           </div>
           <div class="f" style="width:100px">
             <label>최대 사용</label>
@@ -933,12 +933,8 @@ function loadDb(){
 function seedDb(){
   return {
     version:5,
-    shops:[{ id:'shop-nodeulgil', name:'노들길', createdAt:Date.now() }],
-    people:[
-      { id:'person-wj1', storeId:'shop-nodeulgil', name:'왕지선', pin:'1111', role:'employee' },
-      { id:'person-sj1', storeId:'shop-nodeulgil', name:'석정윤', pin:'2222', role:'employee' },
-      { id:'person-mgr', storeId:'shop-nodeulgil', name:'점장', pin:'2001', role:'manager' }
-    ],
+    shops:[],
+    people:[],
     admins:[],
     records:[],
     reservations:[],
