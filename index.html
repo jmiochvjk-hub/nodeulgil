@@ -344,6 +344,10 @@ tbody tr:last-child td{border-bottom:0}
           </div>
         </div>
         <div class="row">
+          <div class="f" style="flex:1; min-width:190px">
+            <label>최고관리자 이메일(선택)</label>
+            <input id="loginOwnerEmail" type="email" autocomplete="email" placeholder="PIN이 중복될 때 입력">
+          </div>
           <div class="f" style="flex:1; min-width:160px">
             <label>PIN 입력</label>
             <input id="pinInput" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리">
@@ -824,6 +828,35 @@ function getInviteByCode(rawCode){
   const code = normalizeInviteCode(rawCode);
   return db.invites.find(i => i.code === code);
 }
+function adminOwnerId(admin){
+  if(!admin) return '';
+  return admin.ownerId || admin.id;
+}
+function currentOwnerId(){
+  if(!session) return '';
+  if(session.kind === 'admin') return session.ownerId || session.id;
+  return storeOwnerId(session.storeId);
+}
+function ownerAdmin(ownerId){
+  return db.admins.find(a => a.id === ownerId) || db.admins.find(a => adminOwnerId(a) === ownerId && a.isRoot) || null;
+}
+function ownerEmailMatches(ownerId, email){
+  const e = normalizeEmail(email);
+  if(!e) return true;
+  return normalizeEmail(ownerAdmin(ownerId)?.email || '') === e;
+}
+function storeOwnerId(storeId){
+  const store = db.shops.find(s => s.id === storeId);
+  if(!store) return ownerAdminIdFallback();
+  return Object.prototype.hasOwnProperty.call(store, 'ownerId') ? (store.ownerId || '') : ownerAdminIdFallback();
+}
+function personOwnerId(person){
+  return storeOwnerId(person?.storeId);
+}
+function ownerAdminIdFallback(){
+  const firstRoot = db.admins.find(a => a.isRoot) || db.admins[0];
+  return firstRoot ? adminOwnerId(firstRoot) : '';
+}
 function fillSignupStoreOptions(){
   const sel = document.getElementById('registerStoreId');
   if(!sel) return;
@@ -888,7 +921,6 @@ function seedDb(){
 function migrate(raw){
   const base = seedDb();
 
-  const usedPins = new Set();
   const migrateAdmins = (arr) => (Array.isArray(arr) ? arr : []).map(a=>{
     const admin = {
       id:a.id || uid('admin'),
@@ -896,10 +928,9 @@ function migrate(raw){
       pin:isValidPin(a.pin) ? a.pin : `${1000 + Math.floor(Math.random()*9000)}`.slice(0,4).padStart(4, '0'),
       email:normalizeEmail(a.email),
       phone:normalizePhone(a.phone),
-      isRoot: !!a.isRoot
+      isRoot: !!a.isRoot,
+      ownerId: a.ownerId || a.id || ''
     };
-    if(usedPins.has(admin.pin)) admin.pin = `${1000 + Math.floor(Math.random()*9000)}`.slice(0,4).padStart(4, '0');
-    usedPins.add(admin.pin);
     return admin;
   });
 
@@ -911,15 +942,13 @@ function migrate(raw){
       pin:isValidPin(p.pin) ? p.pin : uid('pin').slice(0,8),
       role: p.role === 'manager' ? 'manager' : p.role === 'parttime' ? 'parttime' : 'employee'
     };
-    if(usedPins.has(person.pin)) person.pin = `${1000 + Math.floor(Math.random()*9000)}`.padStart(4,'0');
-    usedPins.add(person.pin);
     return person;
   });
 
   const out = {
     version:5,
-    shops:Array.isArray(raw.shops)&&raw.shops.length ? raw.shops : base.shops,
     admins:Array.isArray(raw.admins)&&raw.admins.length ? migrateAdmins(raw.admins) : base.admins,
+    shops:[],
     people:migratePeople(raw.people, base.shops[0]?.id),
     records:(Array.isArray(raw.records)?raw.records:[]).map(r=>({
       id:r.id || uid('rec'),
@@ -957,6 +986,7 @@ function migrate(raw){
           role: i.role === 'manager' ? 'manager' : i.role === 'admin' ? 'admin' : i.role === 'parttime' ? 'parttime' : 'employee',
           storeId:(i.role === 'manager' || i.role === 'admin') ? '' : (i.storeId || base.shops[0]?.id),
           storeName: i.role === 'manager' || i.role === 'admin' ? String(i.storeName || '').trim() : '',
+          ownerId: i.ownerId || '',
           maxUses:Number(i.maxUses)||1,
           usedCount:Number(i.usedCount)||0,
           expiresAt: i.expiresAt ? Number(i.expiresAt) : null,
@@ -967,6 +997,24 @@ function migrate(raw){
         }))
       : []
   };
+
+  const fallbackOwnerId = out.admins[0]?.ownerId || out.admins[0]?.id || '';
+  out.admins.forEach(a=>{ if(!a.ownerId) a.ownerId = a.id; });
+  out.shops = (Array.isArray(raw.shops)&&raw.shops.length ? raw.shops : base.shops).map(s=>({
+    ...s,
+    ownerId: s.ownerId || fallbackOwnerId
+  }));
+  out.invites.forEach(i=>{
+    if(!i.ownerId){
+      if(i.storeId) i.ownerId = out.shops.find(s=>s.id===i.storeId)?.ownerId || fallbackOwnerId;
+      else i.ownerId = i.createdBy && out.admins.some(a=>a.id===i.createdBy) ? adminOwnerId(out.admins.find(a=>a.id===i.createdBy)) : fallbackOwnerId;
+    }
+  });
+  const seenInviteCodes = new Set();
+  out.invites.forEach(i=>{
+    while(!i.code || seenInviteCodes.has(i.code)) i.code = normalizeInviteCode(nextInviteCode());
+    seenInviteCodes.add(i.code);
+  });
 
   // legacy fallback for old fields
   if(Array.isArray(raw.work)){
@@ -1091,9 +1139,19 @@ function showPage(){
 
 function loginWithPin(){
   const pin = String(document.getElementById('pinInput').value || '').trim();
+  const ownerEmail = normalizeEmail(document.getElementById('loginOwnerEmail')?.value || '');
   if(!isValidPin(pin)){ alert('PIN은 숫자 4~8자리여야 합니다.'); return; }
 
-  const admin = db.admins.find(x => x.pin === pin);
+  const adminMatches = db.admins.filter(x => x.pin === pin && ownerEmailMatches(adminOwnerId(x), ownerEmail));
+  const personMatches = db.people.filter(x => x.pin === pin && ownerEmailMatches(personOwnerId(x), ownerEmail));
+  const totalMatches = adminMatches.length + personMatches.length;
+  if(!totalMatches){ alert('등록되지 않은 PIN입니다.'); return; }
+  if(totalMatches > 1){
+    alert(ownerEmail ? '같은 계정 안에 같은 PIN이 있습니다. 관리자에게 PIN 수정을 요청해 주세요.' : '같은 PIN이 여러 계정에 있습니다. 최고관리자 이메일을 함께 입력해 주세요.');
+    return;
+  }
+
+  const admin = adminMatches[0];
   if(admin){
     session = {
       kind:'admin',
@@ -1102,15 +1160,16 @@ function loginWithPin(){
       pin,
       adminStoreId: null,
       adminMode: 'list',
-      adminIsRoot: !!admin.isRoot
+      adminIsRoot: !!admin.isRoot,
+      ownerId: adminOwnerId(admin)
     };
     pinInput.value = '';
+    if(document.getElementById('loginOwnerEmail')) document.getElementById('loginOwnerEmail').value = '';
     showPage();
     return;
   }
 
-  const person = db.people.find(x => x.pin === pin);
-  if(!person){ alert('등록되지 않은 PIN입니다.'); return; }
+  const person = personMatches[0];
 
   session = {
     kind: person.role === 'manager' ? 'manager' : 'staff',
@@ -1118,10 +1177,12 @@ function loginWithPin(){
     personId: person.id,
     storeId: person.storeId,
     name: person.name,
-    pin
+    pin,
+    ownerId: personOwnerId(person)
   };
 
   pinInput.value = '';
+  if(document.getElementById('loginOwnerEmail')) document.getElementById('loginOwnerEmail').value = '';
   showPage();
 }
 
@@ -1162,14 +1223,16 @@ function registerWithInvite(){
     if(invite.role !== staffRole){ alert(`이 초대 코드는 ${roleLabel(invite.role)} 전용입니다.`); return; }
   }
 
-  if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  const inviteOwnerId = invite ? (invite.ownerId || (invite.storeId ? storeOwnerId(invite.storeId) : ownerAdminIdFallback())) : '';
+  if(inviteOwnerId && pinTaken(pin, '', inviteOwnerId)){ alert('이미 사용 중인 PIN입니다.'); return; }
   if(staffRole === 'admin' && adminContactTaken(adminEmail, adminPhone)){ alert('이미 가입된 관리자 연락처(이메일/휴대폰)입니다.'); return; }
 
   if(staffRole === 'admin'){
     const adminId = uid('admin');
     const adminIsRoot = !invite;
+    const ownerId = inviteOwnerId || adminId;
     mutate(d=>{
-      d.admins.push({ id:adminId, name, pin, email: adminEmail, phone: adminPhone, isRoot: !!adminIsRoot });
+      d.admins.push({ id:adminId, ownerId, name, pin, email: adminEmail, phone: adminPhone, isRoot: !!adminIsRoot });
       if(invite){
         const target = d.invites.find(i=>i.id===invite.id);
         if(target){
@@ -1185,6 +1248,7 @@ function registerWithInvite(){
       name,
       pin,
       adminIsRoot,
+      ownerId,
       adminStoreId: null,
       adminMode: 'list'
     };
@@ -1201,6 +1265,7 @@ function registerWithInvite(){
 
   const personId = uid('person');
   let storeId = staffRole === 'manager' ? uid('shop') : (invite?.storeId || '');
+  const ownerId = inviteOwnerId || ownerAdminIdFallback();
 
   if(staffRole !== 'manager' && !storeId){
     if(!requestStoreId){ alert('초대 코드에 지정된 점포가 없습니다.'); return; }
@@ -1209,7 +1274,7 @@ function registerWithInvite(){
 
   mutate(d=>{
     if(staffRole === 'manager'){
-      d.shops.push({ id:storeId, name:storeNameInput, createdAt:Date.now() });
+      d.shops.push({ id:storeId, ownerId, name:storeNameInput, createdAt:Date.now() });
     }
 
     d.people.push({ id:personId, storeId, name, pin, role:staffRole });
@@ -1229,7 +1294,8 @@ function registerWithInvite(){
     personId,
     storeId,
     name,
-    pin
+    pin,
+    ownerId
   };
 
   document.getElementById('inviteCode').value = '';
@@ -1256,7 +1322,9 @@ function getStore(id){ return db.shops.find(s => s.id === id); }
 function fillInviteStoreOptions(){
   const sel = document.getElementById('aInviteStoreId');
   if(!sel) return;
-  sel.innerHTML = db.shops.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">점포 없음</option>';
+  const ownerId = currentOwnerId();
+  const stores = db.shops.filter(s=>!ownerId || s.ownerId === ownerId);
+  sel.innerHTML = stores.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">점포 없음</option>';
 }
 function toggleInviteRoleInputs(){
   const roleEl = document.getElementById('aInviteRole');
@@ -1276,7 +1344,8 @@ function renderInviteCodes(){
   const wrap = document.getElementById('adminInviteListWrap');
   const empty = document.getElementById('adminInviteEmpty');
   if(!wrap || !empty) return;
-  const rows = (db.invites || []).slice().reverse();
+  const ownerId = currentOwnerId();
+  const rows = (db.invites || []).filter(inv=>!ownerId || inv.ownerId === ownerId).slice().reverse();
   empty.hidden = rows.length>0;
   wrap.innerHTML = rows.map(inv=>{
     const store = inv.role === 'manager'
@@ -1327,15 +1396,16 @@ function createInviteCode(){
   const rawDate = String(expEl?.value || '').trim();
   const storeId = (role === 'manager' || role === 'admin') ? '' : String(storeSelect?.value || '').trim();
   const storeName = String(storeNameInput?.value || '').trim();
+  const ownerId = currentOwnerId();
 
   if((role === 'manager' || role === 'admin') && !storeName){ alert('관리자용 초대 라벨을 입력해 주세요.'); return; }
   if(role !== 'manager' && role !== 'admin' && !storeId){ alert('점포를 선택해 주세요.'); return; }
 
-  const code = nextInviteCode();
+  const code = normalizeInviteCode(nextInviteCode());
   const finalCode = (()=>{
-    const existing = new Set((db.invites || []).map(i=>i.code));
+    const existing = new Set((db.invites || []).map(i=>normalizeInviteCode(i.code)));
     let c = code;
-    while(existing.has(c)) c = nextInviteCode();
+    while(existing.has(c)) c = normalizeInviteCode(nextInviteCode());
     return c;
   })();
   const expiresAt = rawDate ? new Date(rawDate + 'T23:59:59').getTime() : null;
@@ -1347,6 +1417,7 @@ function createInviteCode(){
       role,
       storeId,
       storeName,
+      ownerId,
       maxUses: maxUses>0 ? maxUses : 1,
       usedCount:0,
       expiresAt,
@@ -1390,8 +1461,10 @@ function setAdminPageVisibility(){
 
 function ensureAdminStoreSelected(){
   if(!session || session.kind !== 'admin') return;
-  if(!session.adminStoreId || !db.shops.some(s => s.id === session.adminStoreId)){
-    session.adminStoreId = db.shops[0]?.id || null;
+  const ownerId = currentOwnerId();
+  const shops = db.shops.filter(s=>!ownerId || s.ownerId === ownerId);
+  if(!session.adminStoreId || !shops.some(s => s.id === session.adminStoreId)){
+    session.adminStoreId = shops[0]?.id || null;
   }
 }
 
@@ -1777,11 +1850,13 @@ function renderAdmin(){
     renderInviteCodes();
     toggleInviteRoleInputs();
     wrap.innerHTML = '';
-    if(!db.shops.length){
+    const ownerId = currentOwnerId();
+    const shops = db.shops.filter(s=>!ownerId || s.ownerId === ownerId);
+    if(!shops.length){
       wrap.innerHTML = '<div class="empty">점포가 없습니다</div>';
       return;
     }
-    db.shops.forEach(s=>{
+    shops.forEach(s=>{
       const ps = peopleInStore(s.id);
       const managerCount = ps.filter(p=>p.role==='manager').length;
       const employeeCount = ps.filter(p=>roleClass(p.role)==='employee').length;
@@ -1952,7 +2027,11 @@ function deleteRecord(id){
   mutate(d=>{ d.records = d.records.filter(x=>x.id!==id); });
 }
 
-function pinTaken(pin, excludeId=''){ return db.admins.some(a=>a.pin===pin && a.id!==excludeId) || db.people.some(p=>p.pin===pin && p.id!==excludeId); }
+function pinTaken(pin, excludeId='', ownerId=currentOwnerId()){
+  if(!ownerId) return false;
+  return db.admins.some(a=>adminOwnerId(a)===ownerId && a.pin===pin && a.id!==excludeId)
+    || db.people.some(p=>personOwnerId(p)===ownerId && p.pin===pin && p.id!==excludeId);
+}
 
 function canManagePerson(person){
   if(!session || !person) return false;
@@ -2048,12 +2127,13 @@ function addStoreByAdmin(){
   const name = String(document.getElementById('aStoreName').value || '').trim();
   const mName = String(document.getElementById('aManagerName').value || '').trim();
   const mPin = String(document.getElementById('aManagerPin').value || '').trim();
+  const ownerId = currentOwnerId();
   if(!name || !mName || !isValidPin(mPin)){ alert('점포명/점장/점장 PIN이 필요합니다.'); return; }
-  if(pinTaken(mPin)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  if(pinTaken(mPin, '', ownerId)){ alert('이미 사용 중인 PIN입니다.'); return; }
 
   mutate(d=>{
     const storeId = uid('shop');
-    d.shops.push({ id:storeId, name, createdAt:Date.now() });
+    d.shops.push({ id:storeId, ownerId, name, createdAt:Date.now() });
     d.people.push({ id:uid('person'), storeId, name:mName, pin:mPin, role:'manager' });
   });
 
@@ -2080,7 +2160,9 @@ function deleteCurrentAdminStore(){
   const sid = session.adminStoreId;
   const shop = getStore(sid);
   if(!sid || !shop) return;
-  if(db.shops.length <= 1){
+  const ownerId = currentOwnerId();
+  const ownShopCount = db.shops.filter(s=>s.ownerId === ownerId).length;
+  if(ownShopCount <= 1){
     alert('최소 1개 점포는 남겨야 합니다.');
     return;
   }
@@ -2106,7 +2188,7 @@ function addManagerByAdmin(){
   const name = String(document.getElementById('aManagerName2').value || '').trim();
   const pin = String(document.getElementById('aManagerPin2').value || '').trim();
   if(!storeId || !name || !isValidPin(pin)){ alert('점포/이름/PIN 확인'); return; }
-  if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  if(pinTaken(pin, '', storeOwnerId(storeId))){ alert('이미 사용 중인 PIN입니다.'); return; }
   mutate(d=>{ d.people.push({ id:uid('person'), storeId, name, pin, role:'manager' }); });
   document.getElementById('aManagerName2').value=''; document.getElementById('aManagerPin2').value='';
   renderAdmin();
@@ -2118,7 +2200,7 @@ function addStaffByAdmin(){
   const name = String(document.getElementById('aStaffName').value || '').trim();
   const pin = String(document.getElementById('aStaffPin').value || '').trim();
   if(!storeId || !name || !isValidPin(pin)){ alert('점포/이름/PIN 확인'); return; }
-  if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  if(pinTaken(pin, '', storeOwnerId(storeId))){ alert('이미 사용 중인 PIN입니다.'); return; }
   mutate(d=>{ d.people.push({ id:uid('person'), storeId, name, pin, role:'employee' }); });
   document.getElementById('aStaffName').value=''; document.getElementById('aStaffPin').value='';
   renderAdmin();
@@ -2130,7 +2212,7 @@ function addPartTimeByAdmin(){
   const name = String(document.getElementById('aPartTimeName').value || '').trim();
   const pin = String(document.getElementById('aPartTimePin').value || '').trim();
   if(!storeId || !name || !isValidPin(pin)){ alert('점포/이름/PIN 확인'); return; }
-  if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  if(pinTaken(pin, '', storeOwnerId(storeId))){ alert('이미 사용 중인 PIN입니다.'); return; }
   mutate(d=>{ d.people.push({ id:uid('person'), storeId, name, pin, role:'parttime' }); });
   document.getElementById('aPartTimeName').value='';
   document.getElementById('aPartTimePin').value='';
