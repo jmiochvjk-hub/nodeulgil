@@ -581,7 +581,7 @@ tbody tr:last-child td{border-bottom:0}
       </div>
 
       <div class="card">
-        <h3 class="subTitle">초대 코드 발급</h3>
+        <h3 class="subTitle">회사 코드 발급</h3>
         <div class="row" style="margin-bottom:8px">
           <div class="f" style="width:120px">
             <label>역할</label>
@@ -610,7 +610,7 @@ tbody tr:last-child td{border-bottom:0}
           <div class="f" style="flex:1; min-width:180px"><label>만료일(선택)</label><input id="aInviteExpires" type="date"></div>
           <button class="btn ghost" onclick="cancelInviteFilters()">초기화</button>
         </div>
-        <div class="small" id="aInviteHint">역할별 초대 코드: 최고관리자, 점장, 직원/알바를 구분해 발급하세요.</div>
+        <div class="small" id="aInviteHint">역할별 회사 코드: 최고관리자, 점장, 직원/알바를 구분해 발급하세요.</div>
         <div class="subTitle" style="margin:12px 0 6px">발급 코드 목록</div>
         <div class="tw" id="adminInviteListWrap"></div>
         <div class="empty" id="adminInviteEmpty">발급된 코드가 없습니다</div>
@@ -1176,7 +1176,7 @@ function loginWithPin(){
   }
   const ownerIdFromInvite = ownerIdByInviteCode(inviteCodeInput);
   if(!isValidPin(pin)){ alert('PIN은 숫자 4~8자리여야 합니다.'); return; }
-  if(!ownerIdFromInvite){ alert('유효하지 않은 초대 코드입니다.'); return; }
+  if(!ownerIdFromInvite){ alert('유효하지 않은 회사 코드입니다.'); return; }
 
   const ownerFilter = ownerIdFromInvite;
   const adminMatches = db.admins.filter(x => x.pin === pin && adminOwnerId(x) === ownerFilter);
@@ -1255,19 +1255,19 @@ function registerWithInvite(){
     if(!adminPhone || !isValidPhone(adminPhone)){ alert('최고관리자 휴대폰을 입력해 주세요.'); return; }
     if(code){
       invite = getInviteByCode(code);
-      if(!invite){ alert('유효하지 않은 초대 코드입니다.'); return; }
+      if(!invite){ alert('유효하지 않은 회사 코드입니다.'); return; }
       if(invite.role !== staffRole){
-        alert(`이 초대 코드는 ${roleLabel(invite.role)} 전용입니다.`);
+        alert(`이 회사 코드는 ${roleLabel(invite.role)} 전용입니다.`);
         return;
       }
-      if(!isInviteUsable(invite)){ alert('사용할 수 없는 초대 코드입니다.'); return; }
+      if(!isInviteUsable(invite)){ alert('사용할 수 없는 회사 코드입니다.'); return; }
     }
   }else{
-    if(!code || code.length < 8){ alert('초대 코드를 입력해 주세요.'); return; }
+    if(!code || code.length < 8){ alert('회사 코드를 입력해 주세요.'); return; }
     invite = getInviteByCode(code);
-    if(!invite){ alert('유효하지 않은 초대 코드입니다.'); return; }
-    if(!isInviteUsable(invite)){ alert('사용할 수 없는 초대 코드입니다.'); return; }
-    if(invite.role !== staffRole){ alert(`이 초대 코드는 ${roleLabel(invite.role)} 전용입니다.`); return; }
+    if(!invite){ alert('유효하지 않은 회사 코드입니다.'); return; }
+    if(!isInviteUsable(invite)){ alert('사용할 수 없는 회사 코드입니다.'); return; }
+    if(invite.role !== staffRole){ alert(`이 회사 코드는 ${roleLabel(invite.role)} 전용입니다.`); return; }
   }
 
   const inviteOwnerId = invite ? (invite.ownerId || (invite.storeId ? storeOwnerId(invite.storeId) : ownerAdminIdFallback())) : '';
@@ -1340,7 +1340,7 @@ function registerWithInvite(){
   const ownerId = inviteOwnerId || ownerAdminIdFallback();
 
   if(staffRole !== 'manager' && !storeId){
-    if(!requestStoreId){ alert('초대 코드에 지정된 점포가 없습니다.'); return; }
+    if(!requestStoreId){ alert('회사 코드에 지정된 점포가 없습니다.'); return; }
     storeId = requestStoreId;
   }
 
@@ -1441,14 +1441,14 @@ function renderInviteCodes(){
 }
 
 function revokeInvite(id){
-  if(!confirm('이 초대 코드를 폐기할까요?')) return;
+  if(!confirm('이 회사 코드를 폐기할까요?')) return;
   mutate(d=>{ const inv = d.invites.find(x=>x.id===id); if(inv) inv.revoked = true; inv.status='revoked'; });
   renderInviteCodes();
 }
 
 function createInviteCode(){
   if(!session || session.kind !== 'admin'){
-    alert('관리자만 초대 코드를 발급할 수 있습니다.');
+    alert('관리자만 회사 코드를 발급할 수 있습니다.');
     return;
   }
 
@@ -1462,7 +1462,7 @@ function createInviteCode(){
   const role = roleEl.value === 'manager' ? 'manager' : roleEl.value === 'admin' ? 'admin' : roleEl.value === 'parttime' ? 'parttime' : 'employee';
 
   if(role === 'admin' && !isAdminOwner()){
-    alert('최고관리자 계정만 최고관리자 초대 코드를 발급할 수 있습니다.');
+    alert('최고관리자 계정만 최고관리자 회사 코드를 발급할 수 있습니다.');
     return;
   }
 
@@ -1472,7 +1472,7 @@ function createInviteCode(){
   const storeName = String(storeNameInput?.value || '').trim();
   const ownerId = currentOwnerId();
 
-  if((role === 'manager' || role === 'admin') && !storeName){ alert('관리자용 초대 라벨을 입력해 주세요.'); return; }
+  if((role === 'manager' || role === 'admin') && !storeName){ alert('관리자용 코드 라벨을 입력해 주세요.'); return; }
   if(role !== 'manager' && role !== 'admin' && !storeId){ alert('점포를 선택해 주세요.'); return; }
 
   const finalCode = generateUniqueInviteCode();
@@ -1504,7 +1504,7 @@ function createInviteCode(){
 
   if(role !== 'manager') fillInviteStoreOptions();
   renderInviteCodes();
-  alert(`초대 코드: ${finalCode}`);
+  alert(`회사 코드: ${finalCode}`);
 }
 
 function cancelInviteFilters(){
