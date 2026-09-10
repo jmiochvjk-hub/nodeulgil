@@ -340,13 +340,13 @@ tbody tr:last-child td{border-bottom:0}
         <div class="panel-head">
           <div>
             <h2>로그인</h2>
-            <p>등록된 PIN으로 내 권한 페이지에 입장합니다.</p>
+            <p>회사 코드를 함께 입력해 내 권한 페이지에 입장합니다.</p>
           </div>
         </div>
         <div class="row">
           <div class="f" style="flex:1; min-width:190px">
-            <label>최고관리자 이메일(선택)</label>
-            <input id="loginOwnerEmail" type="email" autocomplete="email" placeholder="PIN이 중복될 때 입력">
+            <label>회사 코드</label>
+            <input id="loginInviteCode" type="text" placeholder="ABCD-EFGH">
           </div>
           <div class="f" style="flex:1; min-width:160px">
             <label>PIN 입력</label>
@@ -360,7 +360,7 @@ tbody tr:last-child td{border-bottom:0}
         <div class="panel-head">
           <div>
             <h2>계정 생성</h2>
-            <p>최고관리자는 이메일과 휴대폰으로 시작하고, 점장/직원/알바는 초대 코드로 가입합니다.</p>
+            <p>전체 가입자는 회사 코드가 필요합니다.</p>
           </div>
         </div>
         <div class="row">
@@ -382,7 +382,7 @@ tbody tr:last-child td{border-bottom:0}
             <select id="registerStoreId"></select>
           </div>
           <div class="f" id="registerInviteCodeRow" style="min-width:170px; display:none">
-            <label id="registerInviteCodeLabel">초대 코드</label><input id="inviteCode" placeholder="예: ABCD-EFGH">
+            <label id="registerInviteCodeLabel">회사 코드</label><input id="inviteCode" placeholder="ABCD-EFGH">
           </div>
           <div class="f" style="flex:1; min-width:150px"><label>이름</label><input id="inviteName" placeholder="이름"></div>
           <div class="f" style="width:130px"><label>PIN</label><input id="invitePin" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리"></div>
@@ -396,7 +396,7 @@ tbody tr:last-child td{border-bottom:0}
           </div>
           <button class="btn" onclick="registerWithInvite()">가입</button>
         </div>
-        <div class="small" id="inviteHint">새 매장/회사의 최고관리자는 이메일과 휴대폰으로 바로 생성됩니다. 기존 최고관리자가 공동 관리자를 추가할 때만 최고관리자 초대 코드를 사용합니다.</div>
+        <div class="small" id="inviteHint">회사 코드는 해당 업체를 식별하며, 로그인이든 가입이든 PIN과 함께 꼭 입력해야 합니다.</div>
       </div>
     </div>
   </section>
@@ -769,6 +769,12 @@ function nextInviteCode(){
   for(let i=0;i<8;i++) out += chars[Math.floor(Math.random()*chars.length)];
   return `${out.slice(0,4)}-${out.slice(4)}`;
 }
+function generateUniqueInviteCode(baseCodes = null){
+  const existing = baseCodes || new Set((db.invites || []).map(i => normalizeInviteCode(i.code)));
+  let code = normalizeInviteCode(nextInviteCode());
+  while(existing.has(code)) code = normalizeInviteCode(nextInviteCode());
+  return code;
+}
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c])); }
 function mins(s,e){ const [a,b]=s.split(':').map(Number), [c,d]=e.split(':').map(Number); let m=(c*60+d)-(a*60+b); if(m<0)m+=1440; return m; }
 function fm(m){ const h=Math.floor(m/60), mm=m%60; return `${h}시간 ${mm?mm+'분':''}`.trim(); }
@@ -794,7 +800,7 @@ function roleLabel(role){
 function isInviteUsable(inv){
   if(!inv || inv.status !== 'active' || inv.revoked) return false;
   if(inv.expiresAt && Date.now() > inv.expiresAt) return false;
-  if(typeof inv.maxUses === 'number' && Number(inv.usedCount) >= inv.maxUses) return false;
+  if(typeof inv.maxUses === 'number' && inv.maxUses > 0 && Number(inv.usedCount) >= inv.maxUses) return false;
   return true;
 }
 
@@ -840,10 +846,10 @@ function currentOwnerId(){
 function ownerAdmin(ownerId){
   return db.admins.find(a => a.id === ownerId) || db.admins.find(a => adminOwnerId(a) === ownerId && a.isRoot) || null;
 }
-function ownerEmailMatches(ownerId, email){
-  const e = normalizeEmail(email);
-  if(!e) return true;
-  return normalizeEmail(ownerAdmin(ownerId)?.email || '') === e;
+function ownerIdByInviteCode(rawCode){
+  const invite = getInviteByCode(normalizeInviteCode(rawCode));
+  if(!invite) return '';
+  return invite.ownerId || (invite.storeId ? storeOwnerId(invite.storeId) : ownerAdminIdFallback());
 }
 function storeOwnerId(storeId){
   const store = db.shops.find(s => s.id === storeId);
@@ -882,7 +888,7 @@ function toggleSignupRoleInputs(){
   storeNameRow.style.display = isManager ? '' : 'none';
   adminEmailRow.style.display = isAdmin ? '' : 'none';
   adminPhoneRow.style.display = isAdmin ? '' : 'none';
-  if(codeLabel) codeLabel.textContent = isAdmin ? '공동관리자 초대 코드(선택)' : '초대 코드';
+  if(codeLabel) codeLabel.textContent = '회사 코드';
   if(isManager || isAdmin){
     storeRow.style.display = 'none';
     codeRow.style.display = '';
@@ -1016,6 +1022,30 @@ function migrate(raw){
     seenInviteCodes.add(i.code);
   });
 
+  const ownerIds = new Set();
+  out.admins.forEach(a=>{ const oid = adminOwnerId(a); if(oid) ownerIds.add(oid); });
+  ownerIds.forEach(ownerId => {
+    if(out.invites.some(i => i.ownerId === ownerId && i.role === 'admin' && !i.revoked)) return;
+    const inviteCodes = new Set((out.invites || []).map(i=>normalizeInviteCode(i.code)));
+    const rootAdmin = out.admins.find(a => adminOwnerId(a) === ownerId);
+    const ownerCode = generateUniqueInviteCode(inviteCodes);
+    out.invites.push({
+      id:uid('invite'),
+      code: ownerCode,
+      role: 'admin',
+      storeId: '',
+      storeName: '회사 코드',
+      ownerId,
+      maxUses: 0,
+      usedCount: 0,
+      expiresAt: null,
+      status: 'active',
+      createdAt: Date.now(),
+      createdBy: rootAdmin?.id || 'system',
+      revoked: false
+    });
+  });
+
   // legacy fallback for old fields
   if(Array.isArray(raw.work)){
     out.records = raw.work.map(r=>({
@@ -1139,15 +1169,23 @@ function showPage(){
 
 function loginWithPin(){
   const pin = String(document.getElementById('pinInput').value || '').trim();
-  const ownerEmail = normalizeEmail(document.getElementById('loginOwnerEmail')?.value || '');
+  const inviteCodeInput = normalizeInviteCode(String(document.getElementById('loginInviteCode')?.value || '').trim());
+  if(!inviteCodeInput){
+    alert('회사 코드를 입력해 주세요.');
+    return;
+  }
+  const ownerIdFromInvite = ownerIdByInviteCode(inviteCodeInput);
   if(!isValidPin(pin)){ alert('PIN은 숫자 4~8자리여야 합니다.'); return; }
+  if(!ownerIdFromInvite){ alert('유효하지 않은 초대 코드입니다.'); return; }
 
-  const adminMatches = db.admins.filter(x => x.pin === pin && ownerEmailMatches(adminOwnerId(x), ownerEmail));
-  const personMatches = db.people.filter(x => x.pin === pin && ownerEmailMatches(personOwnerId(x), ownerEmail));
+  const ownerFilter = ownerIdFromInvite;
+  const adminMatches = db.admins.filter(x => x.pin === pin && adminOwnerId(x) === ownerFilter);
+  const personMatches = db.people.filter(x => x.pin === pin && personOwnerId(x) === ownerFilter);
   const totalMatches = adminMatches.length + personMatches.length;
+
   if(!totalMatches){ alert('등록되지 않은 PIN입니다.'); return; }
   if(totalMatches > 1){
-    alert(ownerEmail ? '같은 계정 안에 같은 PIN이 있습니다. 관리자에게 PIN 수정을 요청해 주세요.' : '같은 PIN이 여러 계정에 있습니다. 최고관리자 이메일을 함께 입력해 주세요.');
+    alert('같은 계정 안에 같은 PIN이 있습니다. 관리자에게 PIN 수정을 요청해 주세요.');
     return;
   }
 
@@ -1163,8 +1201,8 @@ function loginWithPin(){
       adminIsRoot: !!admin.isRoot,
       ownerId: adminOwnerId(admin)
     };
-    pinInput.value = '';
-    if(document.getElementById('loginOwnerEmail')) document.getElementById('loginOwnerEmail').value = '';
+  pinInput.value = '';
+    if(document.getElementById('loginInviteCode')) document.getElementById('loginInviteCode').value = '';
     showPage();
     return;
   }
@@ -1182,7 +1220,7 @@ function loginWithPin(){
   };
 
   pinInput.value = '';
-  if(document.getElementById('loginOwnerEmail')) document.getElementById('loginOwnerEmail').value = '';
+  if(document.getElementById('loginInviteCode')) document.getElementById('loginInviteCode').value = '';
   showPage();
 }
 
@@ -1207,13 +1245,22 @@ function registerWithInvite(){
   if(!isValidPin(pin)){ alert('PIN은 숫자 4~8자리여야 합니다.'); return; }
 
   if(staffRole === 'admin'){
+    if(!code){
+      if(db.admins.length){
+        alert('최고관리자도 회사 코드를 입력해 주세요.');
+        return;
+      }
+    }
     if(!adminEmail || !isValidEmail(adminEmail)){ alert('최고관리자 이메일을 입력해 주세요.'); return; }
     if(!adminPhone || !isValidPhone(adminPhone)){ alert('최고관리자 휴대폰을 입력해 주세요.'); return; }
     if(code){
       invite = getInviteByCode(code);
       if(!invite){ alert('유효하지 않은 초대 코드입니다.'); return; }
+      if(invite.role !== staffRole){
+        alert(`이 초대 코드는 ${roleLabel(invite.role)} 전용입니다.`);
+        return;
+      }
       if(!isInviteUsable(invite)){ alert('사용할 수 없는 초대 코드입니다.'); return; }
-      if(invite.role !== staffRole){ alert(`이 초대 코드는 ${roleLabel(invite.role)} 전용입니다.`); return; }
     }
   }else{
     if(!code || code.length < 8){ alert('초대 코드를 입력해 주세요.'); return; }
@@ -1224,15 +1271,37 @@ function registerWithInvite(){
   }
 
   const inviteOwnerId = invite ? (invite.ownerId || (invite.storeId ? storeOwnerId(invite.storeId) : ownerAdminIdFallback())) : '';
-  if(inviteOwnerId && pinTaken(pin, '', inviteOwnerId)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  
   if(staffRole === 'admin' && adminContactTaken(adminEmail, adminPhone)){ alert('이미 가입된 관리자 연락처(이메일/휴대폰)입니다.'); return; }
 
   if(staffRole === 'admin'){
     const adminId = uid('admin');
     const adminIsRoot = !invite;
     const ownerId = inviteOwnerId || adminId;
+    const companyCode = adminIsRoot ? (() => {
+      const codes = new Set((db.invites || []).map(i => normalizeInviteCode(i.code)));
+      return generateUniqueInviteCode(codes);
+    })() : '';
+    if(pinTaken(pin, '', ownerId)){ alert('이미 사용 중인 PIN입니다.'); return; }
     mutate(d=>{
       d.admins.push({ id:adminId, ownerId, name, pin, email: adminEmail, phone: adminPhone, isRoot: !!adminIsRoot });
+      if(adminIsRoot){
+        d.invites.push({
+          id: uid('invite'),
+          code: companyCode,
+          role: 'admin',
+          storeId: '',
+          storeName: '회사 코드',
+          ownerId,
+          maxUses: 0,
+          usedCount: 0,
+          expiresAt: null,
+          status: 'active',
+          createdAt: Date.now(),
+          createdBy: adminId,
+          revoked: false
+        });
+      }
       if(invite){
         const target = d.invites.find(i=>i.id===invite.id);
         if(target){
@@ -1258,7 +1327,10 @@ function registerWithInvite(){
     document.getElementById('registerAdminEmail').value = '';
     document.getElementById('registerAdminPhone').value = '';
     if(document.getElementById('registerStoreName')) document.getElementById('registerStoreName').value = '';
-    alert(`${roleLabel(staffRole)} 계정으로 가입되었습니다.`);
+    const message = adminIsRoot
+      ? `${roleLabel(staffRole)} 계정으로 가입되었습니다.\n회사 코드: ${companyCode}`
+      : `${roleLabel(staffRole)} 계정으로 가입되었습니다.`;
+    alert(message);
     showPage();
     return;
   }
@@ -1353,7 +1425,9 @@ function renderInviteCodes(){
       : inv.role === 'admin'
         ? '대상: 전체'
         : `점포: ${esc(getStore(inv.storeId)?.name || '미정')}`;
-    const remain = typeof inv.maxUses === 'number' ? Math.max(inv.maxUses - Number(inv.usedCount || 0), 0) : '무제한';
+    const remain = (typeof inv.maxUses === 'number' && inv.maxUses > 0)
+      ? Math.max(inv.maxUses - Number(inv.usedCount || 0), 0)
+      : '무제한';
     const isExpired = inv.expiresAt && Date.now() > inv.expiresAt;
     const status = isExpired ? '만료' : (!isInviteUsable(inv) ? '사용불가' : '사용가능');
     return `<div class="pcard">
@@ -1401,13 +1475,7 @@ function createInviteCode(){
   if((role === 'manager' || role === 'admin') && !storeName){ alert('관리자용 초대 라벨을 입력해 주세요.'); return; }
   if(role !== 'manager' && role !== 'admin' && !storeId){ alert('점포를 선택해 주세요.'); return; }
 
-  const code = normalizeInviteCode(nextInviteCode());
-  const finalCode = (()=>{
-    const existing = new Set((db.invites || []).map(i=>normalizeInviteCode(i.code)));
-    let c = code;
-    while(existing.has(c)) c = normalizeInviteCode(nextInviteCode());
-    return c;
-  })();
+  const finalCode = generateUniqueInviteCode();
   const expiresAt = rawDate ? new Date(rawDate + 'T23:59:59').getTime() : null;
 
   mutate(d=>{
