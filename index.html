@@ -67,6 +67,52 @@ h1{font-size:20px; margin:0}
   margin-bottom:12px;
 }
 .row{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end}
+.login-hero{
+  padding:18px 0 12px;
+  display:grid;
+  grid-template-columns:1.15fr .85fr;
+  gap:18px;
+  align-items:end;
+}
+.eyebrow{font-size:12px; color:var(--accent); font-weight:800; margin-bottom:6px}
+.hero-title{font-size:30px; line-height:1.16; font-weight:850; margin:0 0 8px}
+.hero-copy{margin:0; color:#56616d; font-size:15px; max-width:560px}
+.feature-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+.feature-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+  background:#fbfcff;
+}
+.feature-card b{display:block; font-size:13px; margin-bottom:4px}
+.feature-card span{display:block; color:var(--muted); font-size:12px}
+.auth-grid{
+  display:grid;
+  grid-template-columns:.75fr 1.25fr;
+  gap:12px;
+  align-items:start;
+}
+.auth-panel{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+.auth-panel.soft{background:#f8fbff}
+.panel-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:12px;
+}
+.panel-head h2{font-size:17px; margin:0}
+.panel-head p{font-size:12px; color:var(--muted); margin:3px 0 0}
 .f{display:flex; flex-direction:column; gap:3px}
 label{font-size:11px; color:#6c7480; font-weight:600}
 input,select,textarea{
@@ -253,6 +299,12 @@ tbody tr:last-child td{border-bottom:0}
   .res-actions{flex-wrap:wrap}
   .res-actions .btn{width:100%}
   .res-actions .btn.sm{min-height:40px}
+  .login-hero{grid-template-columns:1fr; gap:12px; padding-top:8px}
+  .hero-title{font-size:25px}
+  .feature-grid,.auth-grid{grid-template-columns:1fr}
+  .feature-grid{gap:7px}
+  .auth-panel{padding:12px}
+  .panel-head{display:block}
 }
 </style>
 </head>
@@ -269,52 +321,79 @@ tbody tr:last-child td{border-bottom:0}
     </div>
   </header>
 
-  <section id="loginPage" class="card">
-    <div style="font-size:14px; color:#5c6772; margin-bottom:10px">PIN으로 직책별 페이지로 이동합니다.</div>
-    <div class="row">
-      <div class="f" style="flex:1; min-width:160px">
-        <label>PIN 입력</label>
-        <input id="pinInput" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리">
+  <section id="loginPage">
+    <div class="login-hero">
+      <div>
+        <div class="eyebrow">매장 근무관리 서비스</div>
+        <h2 class="hero-title">근무시간, 예약, 매장 관리를 한 곳에서.</h2>
+        <p class="hero-copy">pick스케줄은 직원 출퇴근 기록, 월간 통계, 예약 알림, 매장별 권한 관리를 간단하게 운영할 수 있는 스케줄 관리 도구입니다.</p>
       </div>
-      <button class="btn" onclick="loginWithPin()">입장</button>
+      <div class="feature-grid">
+        <div class="feature-card"><b>근무기록</b><span>24시간제 입력, 리뷰 수, 월간 통계</span></div>
+        <div class="feature-card"><b>예약관리</b><span>고객 예약 등록, 수정, 브라우저 알림</span></div>
+        <div class="feature-card"><b>권한분리</b><span>최고관리자, 점장, 직원, 알바 분리</span></div>
+      </div>
     </div>
 
-    <div class="card" style="margin-top:12px; background:#f8fbff">
-      <div class="subTitle" style="margin:0 0 8px">계정 생성(최고관리자 / 점장 / 직원 / 알바)</div>
-      <div class="row">
-        <div class="f" style="width:140px">
-          <label>가입 유형</label>
-          <select id="registerRole" onchange="toggleSignupRoleInputs()">
-            <option value="admin">최고관리자</option>
-            <option value="manager">점장(새 점포 개설)</option>
-            <option value="employee">직원</option>
-            <option value="parttime">알바</option>
-          </select>
+    <div class="auth-grid">
+      <div class="auth-panel">
+        <div class="panel-head">
+          <div>
+            <h2>로그인</h2>
+            <p>등록된 PIN으로 내 권한 페이지에 입장합니다.</p>
+          </div>
         </div>
-        <div class="f" id="registerStoreNameRow" style="min-width:170px">
-          <label>점포명</label>
-          <input id="registerStoreName" placeholder="새 점포 이름">
+        <div class="row">
+          <div class="f" style="flex:1; min-width:160px">
+            <label>PIN 입력</label>
+            <input id="pinInput" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리">
+          </div>
+          <button class="btn" onclick="loginWithPin()">입장</button>
         </div>
-        <div class="f" id="registerStoreRow" style="flex:1; min-width:170px; display:none">
-          <label>기존 점포</label>
-          <select id="registerStoreId"></select>
-        </div>
-        <div class="f" id="registerInviteCodeRow" style="min-width:170px; display:none">
-          <label>초대 코드</label><input id="inviteCode" placeholder="예: ABCD-EFGH">
-        </div>
-        <div class="f" style="flex:1; min-width:150px"><label>이름</label><input id="inviteName" placeholder="이름"></div>
-        <div class="f" style="width:130px"><label>PIN</label><input id="invitePin" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리"></div>
-        <div class="f" id="registerAdminEmailRow" style="min-width:180px; display:none">
-          <label>이메일</label>
-          <input id="registerAdminEmail" type="email" autocomplete="email" placeholder="admin@company.com">
-        </div>
-        <div class="f" id="registerAdminPhoneRow" style="min-width:180px; display:none">
-          <label>휴대폰 번호</label>
-          <input id="registerAdminPhone" inputmode="numeric" placeholder="010-0000-0000">
-        </div>
-        <button class="btn" onclick="registerWithInvite()">가입</button>
       </div>
-      <div class="small" id="inviteHint">최고관리자: 이메일+휴대폰 등록 후 최초 1개 계정은 초대 코드 없이 생성됩니다. 점장/직원/알바는 초대 코드로 등록합니다.</div>
+
+      <div class="auth-panel soft">
+        <div class="panel-head">
+          <div>
+            <h2>계정 생성</h2>
+            <p>최고관리자는 이메일과 휴대폰으로 시작하고, 점장/직원/알바는 초대 코드로 가입합니다.</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="f" style="width:140px">
+            <label>가입 유형</label>
+            <select id="registerRole" onchange="toggleSignupRoleInputs()">
+              <option value="admin">최고관리자</option>
+              <option value="manager">점장(새 점포 개설)</option>
+              <option value="employee">직원</option>
+              <option value="parttime">알바</option>
+            </select>
+          </div>
+          <div class="f" id="registerStoreNameRow" style="min-width:170px">
+            <label>점포명</label>
+            <input id="registerStoreName" placeholder="새 점포 이름">
+          </div>
+          <div class="f" id="registerStoreRow" style="flex:1; min-width:170px; display:none">
+            <label>기존 점포</label>
+            <select id="registerStoreId"></select>
+          </div>
+          <div class="f" id="registerInviteCodeRow" style="min-width:170px; display:none">
+            <label>초대 코드</label><input id="inviteCode" placeholder="예: ABCD-EFGH">
+          </div>
+          <div class="f" style="flex:1; min-width:150px"><label>이름</label><input id="inviteName" placeholder="이름"></div>
+          <div class="f" style="width:130px"><label>PIN</label><input id="invitePin" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리"></div>
+          <div class="f" id="registerAdminEmailRow" style="min-width:180px; display:none">
+            <label>이메일</label>
+            <input id="registerAdminEmail" type="email" autocomplete="email" placeholder="admin@company.com">
+          </div>
+          <div class="f" id="registerAdminPhoneRow" style="min-width:180px; display:none">
+            <label>휴대폰 번호</label>
+            <input id="registerAdminPhone" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000">
+          </div>
+          <button class="btn" onclick="registerWithInvite()">가입</button>
+        </div>
+        <div class="small" id="inviteHint">최초 최고관리자 1명은 초대 코드 없이 생성됩니다. 이후 최고관리자 추가는 최고관리자 초대 코드가 필요합니다.</div>
+      </div>
     </div>
   </section>
 
@@ -694,8 +773,8 @@ function minOpts(v){ let o=''; for(let i=0;i<60;i+=5){ const x=pad(i); o+=`<opti
 function isValidPin(v){ return /^\d{4,8}$/.test(v); }
 function normalizeEmail(v){ return String(v || '').trim().toLowerCase(); }
 function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim()); }
-function normalizePhone(v){ return String(v || '').replace(/\\D/g, ''); }
-function isValidPhone(v){ return /^\\d{10,11}$/.test(normalizePhone(v)); }
+function normalizePhone(v){ return String(v || '').replace(/\D/g, ''); }
+function isValidPhone(v){ return /^\d{10,11}$/.test(normalizePhone(v)); }
 function roleClass(role){
   if(role === 'manager') return 'manager';
   if(role === 'admin') return 'manager';
