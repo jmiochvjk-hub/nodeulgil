@@ -378,7 +378,7 @@ tbody tr:last-child td{border-bottom:0}
             <select id="registerStoreId"></select>
           </div>
           <div class="f" id="registerInviteCodeRow" style="min-width:170px; display:none">
-            <label>초대 코드</label><input id="inviteCode" placeholder="예: ABCD-EFGH">
+            <label id="registerInviteCodeLabel">초대 코드</label><input id="inviteCode" placeholder="예: ABCD-EFGH">
           </div>
           <div class="f" style="flex:1; min-width:150px"><label>이름</label><input id="inviteName" placeholder="이름"></div>
           <div class="f" style="width:130px"><label>PIN</label><input id="invitePin" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리"></div>
@@ -392,7 +392,7 @@ tbody tr:last-child td{border-bottom:0}
           </div>
           <button class="btn" onclick="registerWithInvite()">가입</button>
         </div>
-        <div class="small" id="inviteHint">최초 최고관리자 1명은 초대 코드 없이 생성됩니다. 이후 최고관리자 추가는 최고관리자 초대 코드가 필요합니다.</div>
+        <div class="small" id="inviteHint">새 매장/회사의 최고관리자는 이메일과 휴대폰으로 바로 생성됩니다. 기존 최고관리자가 공동 관리자를 추가할 때만 최고관리자 초대 코드를 사용합니다.</div>
       </div>
     </div>
   </section>
@@ -839,19 +839,20 @@ function toggleSignupRoleInputs(){
   const storeNameRow = document.getElementById('registerStoreNameRow');
   const storeRow = document.getElementById('registerStoreRow');
   const codeRow = document.getElementById('registerInviteCodeRow');
+  const codeLabel = document.getElementById('registerInviteCodeLabel');
   const adminEmailRow = document.getElementById('registerAdminEmailRow');
   const adminPhoneRow = document.getElementById('registerAdminPhoneRow');
   if(!roleEl || !storeNameRow || !storeRow || !codeRow || !adminEmailRow || !adminPhoneRow) return;
   const role = roleEl.value;
   const isManager = role === 'manager';
   const isAdmin = role === 'admin';
-  const needInviteForAdmin = isAdmin && Array.isArray(db?.admins) && db.admins.length > 0;
   storeNameRow.style.display = isManager ? '' : 'none';
   adminEmailRow.style.display = isAdmin ? '' : 'none';
   adminPhoneRow.style.display = isAdmin ? '' : 'none';
+  if(codeLabel) codeLabel.textContent = isAdmin ? '공동관리자 초대 코드(선택)' : '초대 코드';
   if(isManager || isAdmin){
     storeRow.style.display = 'none';
-    codeRow.style.display = needInviteForAdmin ? '' : 'none';
+    codeRow.style.display = '';
     return;
   }
   storeRow.style.display = '';
@@ -1134,7 +1135,6 @@ function registerWithInvite(){
   const storeNameInput = String(document.getElementById('registerStoreName')?.value || '').trim();
   const staffRole = roleSel === 'admin' ? 'admin' : (roleSel === 'parttime' ? 'parttime' : (roleSel === 'employee' ? 'employee' : 'manager'));
   const requestStoreId = staffRole === 'manager' ? '' : String(document.getElementById('registerStoreId')?.value || '').trim();
-  const isFirstAdmin = Array.isArray(db?.admins) && db.admins.length === 0;
   let invite = null;
 
   if(staffRole === 'manager' && !storeNameInput){
@@ -1148,8 +1148,7 @@ function registerWithInvite(){
   if(staffRole === 'admin'){
     if(!adminEmail || !isValidEmail(adminEmail)){ alert('최고관리자 이메일을 입력해 주세요.'); return; }
     if(!adminPhone || !isValidPhone(adminPhone)){ alert('최고관리자 휴대폰을 입력해 주세요.'); return; }
-    if(!isFirstAdmin){
-      if(!code || code.length < 8){ alert('최고관리자 추가는 초대 코드가 필요합니다.'); return; }
+    if(code){
       invite = getInviteByCode(code);
       if(!invite){ alert('유효하지 않은 초대 코드입니다.'); return; }
       if(!isInviteUsable(invite)){ alert('사용할 수 없는 초대 코드입니다.'); return; }
@@ -1168,7 +1167,7 @@ function registerWithInvite(){
 
   if(staffRole === 'admin'){
     const adminId = uid('admin');
-    const adminIsRoot = isFirstAdmin;
+    const adminIsRoot = !invite;
     mutate(d=>{
       d.admins.push({ id:adminId, name, pin, email: adminEmail, phone: adminPhone, isRoot: !!adminIsRoot });
       if(invite){
