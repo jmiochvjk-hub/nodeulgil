@@ -22,6 +22,7 @@
   --manager:#12907f;
   --manager-soft:#e7f6f3;
   --shadow:0 10px 30px rgba(18,24,40,.07);
+  --tap:44px;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
 body{
@@ -29,7 +30,7 @@ body{
   background:var(--bg);
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",Pretendard,"Malgun Gothic","Segoe UI",Roboto,sans-serif;
-  font-size:15px;
+  font-size:16px;
   line-height:1.5;
   padding:12px 12px 28px;
 }
@@ -71,8 +72,9 @@ label{font-size:11px; color:#6c7480; font-weight:600}
 input,select,textarea{
   border:1px solid var(--line);
   border-radius:10px;
-  padding:9px;
+  padding:10px;
   font:inherit;
+  min-height:var(--tap);
   color:var(--text);
   background:#fff;
   outline:none;
@@ -85,7 +87,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   background:var(--accent);
   color:#fff;
   font-weight:700;
-  padding:10px 12px;
+  padding:11px 14px;
+  min-height:var(--tap);
   cursor:pointer;
 }
 .btn.ghost{
@@ -93,7 +96,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   color:#5c6672;
   border:1px solid var(--line);
 }
-.btn.sm{font-size:12.5px; padding:7px 9px}
+.btn.sm{font-size:12.5px; padding:7px 9px; min-height:40px}
 .btn.full{width:100%}
 .btn.logout{background:#eff2fa; color:#5c6672}
 .btn.danger{background:#f6f1f1; color:#7c2a2a}
@@ -108,6 +111,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   background:#fff;
   border:1px solid var(--line);
   color:#6e7782;
+  min-height:44px;
+  padding:0 12px;
 }
 .tabs button.on{background:var(--accent); color:#fff; border-color:var(--accent)}
 .nav{
@@ -118,7 +123,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   margin-bottom:12px;
 }
 .nav b{min-width:130px; text-align:center; font-size:17px}
-.nav button{width:34px; height:34px; border-radius:9px; border:1px solid var(--line); background:#fff}
+.nav button{width:44px; height:44px; border-radius:9px; border:1px solid var(--line); background:#fff}
 .today{width:auto; min-width:54px; padding:0 10px; font-size:12.5px; color:#69717a}
 .subTitle{margin:0 0 8px; font-size:14px; color:#6a7480}
 
@@ -162,7 +167,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .cell.today .d{background:var(--accent); color:#fff; border-radius:50%}
 .cell .d{width:20px; height:20px; line-height:20px; text-align:center; margin:0 auto; font-size:12px; font-weight:700}
 .chip{
-  font-size:clamp(7.5px,2vw,10.5px);
+  font-size:clamp(8.5px,2vw,10.5px);
   border-radius:4px;
   padding:1.5px 0;
   text-align:center;
@@ -223,6 +228,32 @@ tbody tr:last-child td{border-bottom:0}
 .res-meta{font-size:12px; color:#6e7784}
 .res-note{font-size:11px; color:#58616c; margin-top:4px}
 .res-actions{display:flex; gap:4px}
+
+@media (max-width: 768px){
+  body{padding:10px 10px 24px; font-size:16px}
+  h1{font-size:22px}
+  .sync{font-size:13px}
+  .pill{font-size:13px; padding:5px 10px}
+  .card{padding:12px}
+  .subTitle{font-size:16px}
+  .btn,.tabs button,.nav button,input,select,textarea,.chk{min-height:44px}
+  .btn.sm{padding:8px 10px}
+  .sheet{padding:12px}
+  .prow .top{margin-bottom:10px}
+  .prow .top .nm{font-size:15px}
+  .chip{font-size:10px}
+  .dow div{font-size:12px}
+  .cell{min-height:82px}
+  .cell .d{width:22px; height:22px; line-height:22px}
+  .tw{overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch}
+  .tw table{min-width:640px}
+  .tw th,.tw td{padding:10px 8px}
+  .memo-cell{font-size:13px; max-width:150px}
+  .tw .memo-cell{max-width:130px}
+  .res-actions{flex-wrap:wrap}
+  .res-actions .btn{width:100%}
+  .res-actions .btn.sm{min-height:40px}
+}
 </style>
 </head>
 <body>
@@ -246,6 +277,44 @@ tbody tr:last-child td{border-bottom:0}
         <input id="pinInput" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리">
       </div>
       <button class="btn" onclick="loginWithPin()">입장</button>
+    </div>
+
+    <div class="card" style="margin-top:12px; background:#f8fbff">
+      <div class="subTitle" style="margin:0 0 8px">계정 생성(최고관리자 / 점장 / 직원 / 알바)</div>
+      <div class="row">
+        <div class="f" style="width:140px">
+          <label>가입 유형</label>
+          <select id="registerRole" onchange="toggleSignupRoleInputs()">
+            <option value="admin">최고관리자</option>
+            <option value="manager">점장(새 점포 개설)</option>
+            <option value="employee">직원</option>
+            <option value="parttime">알바</option>
+          </select>
+        </div>
+        <div class="f" id="registerStoreNameRow" style="min-width:170px">
+          <label>점포명</label>
+          <input id="registerStoreName" placeholder="새 점포 이름">
+        </div>
+        <div class="f" id="registerStoreRow" style="flex:1; min-width:170px; display:none">
+          <label>기존 점포</label>
+          <select id="registerStoreId"></select>
+        </div>
+        <div class="f" id="registerInviteCodeRow" style="min-width:170px; display:none">
+          <label>초대 코드</label><input id="inviteCode" placeholder="예: ABCD-EFGH">
+        </div>
+        <div class="f" style="flex:1; min-width:150px"><label>이름</label><input id="inviteName" placeholder="이름"></div>
+        <div class="f" style="width:130px"><label>PIN</label><input id="invitePin" type="password" inputmode="numeric" maxlength="8" minlength="4" placeholder="숫자 4~8자리"></div>
+        <div class="f" id="registerAdminEmailRow" style="min-width:180px; display:none">
+          <label>이메일</label>
+          <input id="registerAdminEmail" type="email" autocomplete="email" placeholder="admin@company.com">
+        </div>
+        <div class="f" id="registerAdminPhoneRow" style="min-width:180px; display:none">
+          <label>휴대폰 번호</label>
+          <input id="registerAdminPhone" inputmode="numeric" placeholder="010-0000-0000">
+        </div>
+        <button class="btn" onclick="registerWithInvite()">가입</button>
+      </div>
+      <div class="small" id="inviteHint">최고관리자: 이메일+휴대폰 등록 후 최초 1개 계정은 초대 코드 없이 생성됩니다. 점장/직원/알바는 초대 코드로 등록합니다.</div>
     </div>
   </section>
 
@@ -427,6 +496,42 @@ tbody tr:last-child td{border-bottom:0}
         <h3 class="subTitle">전체 점포 목록</h3>
         <div id="adminStoreListWrap"></div>
       </div>
+
+      <div class="card">
+        <h3 class="subTitle">초대 코드 발급</h3>
+        <div class="row" style="margin-bottom:8px">
+          <div class="f" style="width:120px">
+            <label>역할</label>
+            <select id="aInviteRole" onchange="toggleInviteRoleInputs()">
+              <option value="admin">최고관리자</option>
+              <option value="manager">점장</option>
+              <option value="employee">직원</option>
+              <option value="parttime">알바</option>
+            </select>
+          </div>
+          <div class="f" id="aInviteStoreRow" style="flex:1; min-width:170px">
+            <label>점포</label>
+            <select id="aInviteStoreId"></select>
+          </div>
+          <div class="f" id="aInviteStoreNameRow" style="flex:1; min-width:170px; display:none">
+            <label id="aInviteStoreNameLabel">새 점포명</label>
+            <input id="aInviteStoreName" placeholder="예: 노들길3호점">
+          </div>
+          <div class="f" style="width:100px">
+            <label>최대 사용</label>
+            <input id="aInviteMaxUses" type="number" min="1" max="999" value="1">
+          </div>
+          <button class="btn" onclick="createInviteCode()">코드 발급</button>
+        </div>
+        <div class="row" style="margin-bottom:8px; gap:6px">
+          <div class="f" style="flex:1; min-width:180px"><label>만료일(선택)</label><input id="aInviteExpires" type="date"></div>
+          <button class="btn ghost" onclick="cancelInviteFilters()">초기화</button>
+        </div>
+        <div class="small" id="aInviteHint">역할별 초대 코드: 최고관리자, 점장, 직원/알바를 구분해 발급하세요.</div>
+        <div class="subTitle" style="margin:12px 0 6px">발급 코드 목록</div>
+        <div class="tw" id="adminInviteListWrap"></div>
+        <div class="empty" id="adminInviteEmpty">발급된 코드가 없습니다</div>
+      </div>
     </div>
 
     <div id="adminStorePage" hidden>
@@ -574,21 +679,104 @@ const reservationEditState = { staff: null, manager: null, admin: null };
 function uid(prefix='id'){ return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`; }
 function pad(n){ return String(n).padStart(2, '0'); }
 function ymd(d){ return d.toLocaleDateString('sv-SE'); }
+function normalizeInviteCode(v){ return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function nextInviteCode(){
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for(let i=0;i<8;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return `${out.slice(0,4)}-${out.slice(4)}`;
+}
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c])); }
 function mins(s,e){ const [a,b]=s.split(':').map(Number), [c,d]=e.split(':').map(Number); let m=(c*60+d)-(a*60+b); if(m<0)m+=1440; return m; }
 function fm(m){ const h=Math.floor(m/60), mm=m%60; return `${h}시간 ${mm?mm+'분':''}`.trim(); }
 function hourOpts(v){ let o=''; for(let i=0;i<24;i++){ const x=pad(i); o+=`<option value="${x}"${x===v?' selected':''}>${x}</option>`;} return o; }
 function minOpts(v){ let o=''; for(let i=0;i<60;i+=5){ const x=pad(i); o+=`<option value="${x}"${x===v?' selected':''}>${x}</option>`;} return o; }
 function isValidPin(v){ return /^\d{4,8}$/.test(v); }
+function normalizeEmail(v){ return String(v || '').trim().toLowerCase(); }
+function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim()); }
+function normalizePhone(v){ return String(v || '').replace(/\\D/g, ''); }
+function isValidPhone(v){ return /^\\d{10,11}$/.test(normalizePhone(v)); }
 function roleClass(role){
   if(role === 'manager') return 'manager';
+  if(role === 'admin') return 'manager';
   if(role === 'parttime') return 'parttime';
   return 'employee';
 }
 function roleLabel(role){
+  if(role === 'admin') return '최고관리자';
   if(role === 'manager') return '점장';
   if(role === 'parttime') return '알바';
   return '직원';
+}
+function isInviteUsable(inv){
+  if(!inv || inv.status !== 'active' || inv.revoked) return false;
+  if(inv.expiresAt && Date.now() > inv.expiresAt) return false;
+  if(typeof inv.maxUses === 'number' && Number(inv.usedCount) >= inv.maxUses) return false;
+  return true;
+}
+
+function adminContactTaken(email, phone, excludeId=''){
+  const e = normalizeEmail(email);
+  const p = normalizePhone(phone);
+  return db.admins.some(a =>
+    (a.id !== excludeId) && (
+      (e && normalizeEmail(a.email || '') === e) ||
+      (p && normalizePhone(a.phone || '') === p)
+    )
+  );
+}
+function currentSessionAdminRecord(){
+  if(!session || session.kind !== 'admin') return null;
+  return db.admins.find(a => a.id === session.id);
+}
+
+function isAdminOwner(){
+  ensureAdminOwner();
+  const admin = currentSessionAdminRecord();
+  return !!admin?.isRoot;
+}
+function ensureAdminOwner(){
+  if(!Array.isArray(db.admins) || !db.admins.length) return false;
+  if(db.admins.some(a=>a.isRoot)) return true;
+  db.admins[0].isRoot = true;
+  return true;
+}
+function getInviteByCode(rawCode){
+  const code = normalizeInviteCode(rawCode);
+  return db.invites.find(i => i.code === code);
+}
+function fillSignupStoreOptions(){
+  const sel = document.getElementById('registerStoreId');
+  if(!sel) return;
+  const stores = Array.isArray(db.shops) ? db.shops : [];
+  if(!stores.length){
+    sel.innerHTML = '<option value="">점포가 없습니다</option>';
+    return;
+  }
+  sel.innerHTML = stores.map(s=>`<option value="${s.id}">${esc(s.name || '이름없는 점포')}</option>`).join('');
+}
+function toggleSignupRoleInputs(){
+  const roleEl = document.getElementById('registerRole');
+  const storeNameRow = document.getElementById('registerStoreNameRow');
+  const storeRow = document.getElementById('registerStoreRow');
+  const codeRow = document.getElementById('registerInviteCodeRow');
+  const adminEmailRow = document.getElementById('registerAdminEmailRow');
+  const adminPhoneRow = document.getElementById('registerAdminPhoneRow');
+  if(!roleEl || !storeNameRow || !storeRow || !codeRow || !adminEmailRow || !adminPhoneRow) return;
+  const role = roleEl.value;
+  const isManager = role === 'manager';
+  const isAdmin = role === 'admin';
+  const needInviteForAdmin = isAdmin && Array.isArray(db?.admins) && db.admins.length > 0;
+  storeNameRow.style.display = isManager ? '' : 'none';
+  adminEmailRow.style.display = isAdmin ? '' : 'none';
+  adminPhoneRow.style.display = isAdmin ? '' : 'none';
+  if(isManager || isAdmin){
+    storeRow.style.display = 'none';
+    codeRow.style.display = needInviteForAdmin ? '' : 'none';
+    return;
+  }
+  storeRow.style.display = '';
+  codeRow.style.display = '';
 }
 function setSyncState(state,text){ const el=document.getElementById('sync'); el.className=`sync ${state}`; el.querySelector('span').textContent=text; }
 function saveDb(){ localStorage.setItem(KEY, JSON.stringify(db)); }
@@ -603,16 +791,17 @@ function loadDb(){
 
 function seedDb(){
   return {
-    version:4,
+    version:5,
     shops:[{ id:'shop-nodeulgil', name:'노들길', createdAt:Date.now() }],
     people:[
       { id:'person-wj1', storeId:'shop-nodeulgil', name:'왕지선', pin:'1111', role:'employee' },
       { id:'person-sj1', storeId:'shop-nodeulgil', name:'석정윤', pin:'2222', role:'employee' },
       { id:'person-mgr', storeId:'shop-nodeulgil', name:'점장', pin:'2001', role:'manager' }
     ],
-    admins:[{ id:'admin-root', name:'최고관리자', pin:'9090' }],
+    admins:[],
     records:[],
-    reservations:[]
+    reservations:[],
+    invites:[]
   };
 }
 
@@ -620,6 +809,20 @@ function migrate(raw){
   const base = seedDb();
 
   const usedPins = new Set();
+  const migrateAdmins = (arr) => (Array.isArray(arr) ? arr : []).map(a=>{
+    const admin = {
+      id:a.id || uid('admin'),
+      name:String(a.name || '최고관리자').trim(),
+      pin:isValidPin(a.pin) ? a.pin : `${1000 + Math.floor(Math.random()*9000)}`.slice(0,4).padStart(4, '0'),
+      email:normalizeEmail(a.email),
+      phone:normalizePhone(a.phone),
+      isRoot: !!a.isRoot
+    };
+    if(usedPins.has(admin.pin)) admin.pin = `${1000 + Math.floor(Math.random()*9000)}`.slice(0,4).padStart(4, '0');
+    usedPins.add(admin.pin);
+    return admin;
+  });
+
   const migratePeople = (arr, fallbackStore) => (Array.isArray(arr) ? arr : []).map(p=>{
     const person = {
       id:p.id || uid('person'),
@@ -634,9 +837,9 @@ function migrate(raw){
   });
 
   const out = {
-    version:4,
+    version:5,
     shops:Array.isArray(raw.shops)&&raw.shops.length ? raw.shops : base.shops,
-    admins:Array.isArray(raw.admins)&&raw.admins.length ? raw.admins : base.admins,
+    admins:Array.isArray(raw.admins)&&raw.admins.length ? migrateAdmins(raw.admins) : base.admins,
     people:migratePeople(raw.people, base.shops[0]?.id),
     records:(Array.isArray(raw.records)?raw.records:[]).map(r=>({
       id:r.id || uid('rec'),
@@ -666,6 +869,23 @@ function migrate(raw){
         createdBy:r.createdBy || null
       };
     }).filter(r=>r.storeId && r.datetime)
+    ,
+    invites:Array.isArray(raw.invites)
+      ? raw.invites.map(i=>({
+          id:i.id || uid('invite'),
+          code:normalizeInviteCode(i.code) || nextInviteCode(),
+          role: i.role === 'manager' ? 'manager' : i.role === 'admin' ? 'admin' : i.role === 'parttime' ? 'parttime' : 'employee',
+          storeId:(i.role === 'manager' || i.role === 'admin') ? '' : (i.storeId || base.shops[0]?.id),
+          storeName: i.role === 'manager' || i.role === 'admin' ? String(i.storeName || '').trim() : '',
+          maxUses:Number(i.maxUses)||1,
+          usedCount:Number(i.usedCount)||0,
+          expiresAt: i.expiresAt ? Number(i.expiresAt) : null,
+          status:i.status || 'active',
+          createdAt:Number(i.createdAt)||Date.now(),
+          createdBy:i.createdBy || 'system',
+          revoked:!!i.revoked
+        }))
+      : []
   };
 
   // legacy fallback for old fields
@@ -684,6 +904,7 @@ function migrate(raw){
   }
 
   if(!out.admins.length) out.admins = base.admins;
+  if(out.admins.length && !out.admins.some(a=>a.isRoot)) out.admins[0].isRoot = true;
   if(!out.shops.length) out.shops = base.shops;
   return out;
 }
@@ -703,6 +924,8 @@ async function pull(force){
       ver = s.v;
       saveDb();
       renderAll();
+      fillSignupStoreOptions();
+      toggleSignupRoleInputs();
       setSyncState('ok', '동기화됨');
     }
   }catch{
@@ -728,6 +951,8 @@ function flush(){
         batch.forEach(fn => fn(db));
         saveDb();
         renderAll();
+        fillSignupStoreOptions();
+        toggleSignupRoleInputs();
         return flush();
       }
       if(!r.ok) throw 0;
@@ -760,7 +985,7 @@ function askPass(){
 function setRoleBadge(){
   const el = document.getElementById('roleBadge');
   if(!session){ el.textContent = '로그인 전'; return; }
-  if(session.kind === 'admin') el.textContent = `관리자 ${session.name}`;
+  if(session.kind === 'admin') el.textContent = session.adminIsRoot ? `최고관리자 ${session.name}` : `관리자 ${session.name}`;
   else if(session.kind === 'manager') el.textContent = `${roleLabel(session.role)} ${session.name}`;
   else el.textContent = `${roleLabel(session.role)} ${session.name}`;
 }
@@ -790,7 +1015,15 @@ function loginWithPin(){
 
   const admin = db.admins.find(x => x.pin === pin);
   if(admin){
-    session = { kind:'admin', name: admin.name || '관리자', id: admin.id, pin, adminStoreId: null, adminMode: 'list' };
+    session = {
+      kind:'admin',
+      name: admin.name || '관리자',
+      id: admin.id,
+      pin,
+      adminStoreId: null,
+      adminMode: 'list',
+      adminIsRoot: !!admin.isRoot
+    };
     pinInput.value = '';
     showPage();
     return;
@@ -812,6 +1045,125 @@ function loginWithPin(){
   showPage();
 }
 
+function registerWithInvite(){
+  const roleSel = document.getElementById('registerRole')?.value || 'manager';
+  const code = normalizeInviteCode(document.getElementById('inviteCode')?.value || '');
+  const name = String(document.getElementById('inviteName').value || '').trim();
+  const pin = String(document.getElementById('invitePin').value || '').trim();
+  const adminEmail = normalizeEmail(document.getElementById('registerAdminEmail')?.value || '');
+  const adminPhone = normalizePhone(document.getElementById('registerAdminPhone')?.value || '');
+  const storeNameInput = String(document.getElementById('registerStoreName')?.value || '').trim();
+  const staffRole = roleSel === 'admin' ? 'admin' : (roleSel === 'parttime' ? 'parttime' : (roleSel === 'employee' ? 'employee' : 'manager'));
+  const requestStoreId = staffRole === 'manager' ? '' : String(document.getElementById('registerStoreId')?.value || '').trim();
+  const isFirstAdmin = Array.isArray(db?.admins) && db.admins.length === 0;
+  let invite = null;
+
+  if(staffRole === 'manager' && !storeNameInput){
+    alert('점포명을 입력해 주세요.');
+    return;
+  }
+
+  if(!name){ alert('이름을 입력해 주세요.'); return; }
+  if(!isValidPin(pin)){ alert('PIN은 숫자 4~8자리여야 합니다.'); return; }
+
+  if(staffRole === 'admin'){
+    if(!adminEmail || !isValidEmail(adminEmail)){ alert('최고관리자 이메일을 입력해 주세요.'); return; }
+    if(!adminPhone || !isValidPhone(adminPhone)){ alert('최고관리자 휴대폰을 입력해 주세요.'); return; }
+    if(!isFirstAdmin){
+      if(!code || code.length < 8){ alert('최고관리자 추가는 초대 코드가 필요합니다.'); return; }
+      invite = getInviteByCode(code);
+      if(!invite){ alert('유효하지 않은 초대 코드입니다.'); return; }
+      if(!isInviteUsable(invite)){ alert('사용할 수 없는 초대 코드입니다.'); return; }
+      if(invite.role !== staffRole){ alert(`이 초대 코드는 ${roleLabel(invite.role)} 전용입니다.`); return; }
+    }
+  }else{
+    if(!code || code.length < 8){ alert('초대 코드를 입력해 주세요.'); return; }
+    invite = getInviteByCode(code);
+    if(!invite){ alert('유효하지 않은 초대 코드입니다.'); return; }
+    if(!isInviteUsable(invite)){ alert('사용할 수 없는 초대 코드입니다.'); return; }
+    if(invite.role !== staffRole){ alert(`이 초대 코드는 ${roleLabel(invite.role)} 전용입니다.`); return; }
+  }
+
+  if(pinTaken(pin)){ alert('이미 사용 중인 PIN입니다.'); return; }
+  if(staffRole === 'admin' && adminContactTaken(adminEmail, adminPhone)){ alert('이미 가입된 관리자 연락처(이메일/휴대폰)입니다.'); return; }
+
+  if(staffRole === 'admin'){
+    const adminId = uid('admin');
+    const adminIsRoot = isFirstAdmin;
+    mutate(d=>{
+      d.admins.push({ id:adminId, name, pin, email: adminEmail, phone: adminPhone, isRoot: !!adminIsRoot });
+      if(invite){
+        const target = d.invites.find(i=>i.id===invite.id);
+        if(target){
+          target.usedCount = Number(target.usedCount || 0) + 1;
+          if(Number(target.maxUses) && target.usedCount >= Number(target.maxUses)) target.status = 'used';
+        }
+      }
+    });
+    session = {
+      kind:'admin',
+      role:'admin',
+      id: adminId,
+      name,
+      pin,
+      adminIsRoot,
+      adminStoreId: null,
+      adminMode: 'list'
+    };
+    document.getElementById('inviteCode').value = '';
+    document.getElementById('inviteName').value = '';
+    document.getElementById('invitePin').value = '';
+    document.getElementById('registerAdminEmail').value = '';
+    document.getElementById('registerAdminPhone').value = '';
+    if(document.getElementById('registerStoreName')) document.getElementById('registerStoreName').value = '';
+    alert(`${roleLabel(staffRole)} 계정으로 가입되었습니다.`);
+    showPage();
+    return;
+  }
+
+  const personId = uid('person');
+  let storeId = staffRole === 'manager' ? uid('shop') : (invite?.storeId || '');
+
+  if(staffRole !== 'manager' && !storeId){
+    if(!requestStoreId){ alert('초대 코드에 지정된 점포가 없습니다.'); return; }
+    storeId = requestStoreId;
+  }
+
+  mutate(d=>{
+    if(staffRole === 'manager'){
+      d.shops.push({ id:storeId, name:storeNameInput, createdAt:Date.now() });
+    }
+
+    d.people.push({ id:personId, storeId, name, pin, role:staffRole });
+
+    if(invite){
+      const target = d.invites.find(i=>i.id===invite.id);
+      if(target){
+        target.usedCount = Number(target.usedCount || 0) + 1;
+        if(Number(target.maxUses) && target.usedCount >= Number(target.maxUses)) target.status = 'used';
+      }
+    }
+  });
+
+  session = {
+    kind: staffRole === 'manager' ? 'manager' : 'staff',
+    role: staffRole,
+    personId,
+    storeId,
+    name,
+    pin
+  };
+
+  document.getElementById('inviteCode').value = '';
+  document.getElementById('inviteName').value = '';
+  document.getElementById('invitePin').value = '';
+  if(document.getElementById('registerStoreId')) document.getElementById('registerStoreId').value = '';
+  if(document.getElementById('registerStoreName')) document.getElementById('registerStoreName').value = '';
+
+  alert(`${roleLabel(staffRole)} 계정으로 가입되었습니다.`);
+  showPage();
+}
+
 function logout(){
   session = null;
   adminMode = 'list';
@@ -823,6 +1175,125 @@ function logout(){
 }
 
 function getStore(id){ return db.shops.find(s => s.id === id); }
+function fillInviteStoreOptions(){
+  const sel = document.getElementById('aInviteStoreId');
+  if(!sel) return;
+  sel.innerHTML = db.shops.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">점포 없음</option>';
+}
+function toggleInviteRoleInputs(){
+  const roleEl = document.getElementById('aInviteRole');
+  const storeRow = document.getElementById('aInviteStoreRow');
+  const storeNameRow = document.getElementById('aInviteStoreNameRow');
+  const storeNameLabel = document.getElementById('aInviteStoreNameLabel');
+  if(!roleEl || !storeRow || !storeNameRow) return;
+  const isManager = roleEl.value === 'manager';
+  const isAdmin = roleEl.value === 'admin';
+  storeRow.style.display = isManager || isAdmin ? 'none' : '';
+  storeNameRow.style.display = isManager || isAdmin ? '' : 'none';
+  if(storeNameLabel){
+    storeNameLabel.textContent = isAdmin ? '구분명' : '새 점포명';
+  }
+}
+function renderInviteCodes(){
+  const wrap = document.getElementById('adminInviteListWrap');
+  const empty = document.getElementById('adminInviteEmpty');
+  if(!wrap || !empty) return;
+  const rows = (db.invites || []).slice().reverse();
+  empty.hidden = rows.length>0;
+  wrap.innerHTML = rows.map(inv=>{
+    const store = inv.role === 'manager'
+      ? `점포: ${esc(inv.storeName || '미정')}`
+      : inv.role === 'admin'
+        ? '대상: 전체'
+        : `점포: ${esc(getStore(inv.storeId)?.name || '미정')}`;
+    const remain = typeof inv.maxUses === 'number' ? Math.max(inv.maxUses - Number(inv.usedCount || 0), 0) : '무제한';
+    const isExpired = inv.expiresAt && Date.now() > inv.expiresAt;
+    const status = isExpired ? '만료' : (!isInviteUsable(inv) ? '사용불가' : '사용가능');
+    return `<div class="pcard">
+      <div class="nm"><i class="dot manager"></i>${esc(inv.code)} <span class="small">${status}</span></div>
+      <div class="sub">${roleLabel(inv.role)} · ${store} · 잔여 ${remain}회</div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn ghost sm" onclick="revokeInvite('${inv.id}')">삭제(폐기)</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function revokeInvite(id){
+  if(!confirm('이 초대 코드를 폐기할까요?')) return;
+  mutate(d=>{ const inv = d.invites.find(x=>x.id===id); if(inv) inv.revoked = true; inv.status='revoked'; });
+  renderInviteCodes();
+}
+
+function createInviteCode(){
+  if(!session || session.kind !== 'admin'){
+    alert('관리자만 초대 코드를 발급할 수 있습니다.');
+    return;
+  }
+
+  const roleEl = document.getElementById('aInviteRole');
+  const storeSelect = document.getElementById('aInviteStoreId');
+  const storeNameInput = document.getElementById('aInviteStoreName');
+  const maxUsesEl = document.getElementById('aInviteMaxUses');
+  const expEl = document.getElementById('aInviteExpires');
+
+  if(!roleEl) return;
+  const role = roleEl.value === 'manager' ? 'manager' : roleEl.value === 'admin' ? 'admin' : roleEl.value === 'parttime' ? 'parttime' : 'employee';
+
+  if(role === 'admin' && !isAdminOwner()){
+    alert('최고관리자 계정만 최고관리자 초대 코드를 발급할 수 있습니다.');
+    return;
+  }
+
+  const maxUses = Number(maxUsesEl?.value || 1);
+  const rawDate = String(expEl?.value || '').trim();
+  const storeId = (role === 'manager' || role === 'admin') ? '' : String(storeSelect?.value || '').trim();
+  const storeName = String(storeNameInput?.value || '').trim();
+
+  if((role === 'manager' || role === 'admin') && !storeName){ alert('관리자용 초대 라벨을 입력해 주세요.'); return; }
+  if(role !== 'manager' && role !== 'admin' && !storeId){ alert('점포를 선택해 주세요.'); return; }
+
+  const code = nextInviteCode();
+  const finalCode = (()=>{
+    const existing = new Set((db.invites || []).map(i=>i.code));
+    let c = code;
+    while(existing.has(c)) c = nextInviteCode();
+    return c;
+  })();
+  const expiresAt = rawDate ? new Date(rawDate + 'T23:59:59').getTime() : null;
+
+  mutate(d=>{
+    d.invites.push({
+      id:uid('invite'),
+      code: finalCode,
+      role,
+      storeId,
+      storeName,
+      maxUses: maxUses>0 ? maxUses : 1,
+      usedCount:0,
+      expiresAt,
+      status:'active',
+      createdAt:Date.now(),
+      createdBy: session?.id || 'admin',
+      revoked:false
+    });
+  });
+
+  if(role === 'manager' || role === 'admin'){
+    document.getElementById('aInviteStoreName').value = '';
+  }
+  maxUsesEl.value = '1';
+  expEl.value = '';
+
+  if(role !== 'manager') fillInviteStoreOptions();
+  renderInviteCodes();
+  alert(`초대 코드: ${finalCode}`);
+}
+
+function cancelInviteFilters(){
+  const exp = document.getElementById('aInviteExpires');
+  if(exp) exp.value = '';
+}
 function storeOfSession(){
   if(!session) return null;
   if(session.kind === 'admin') return session.adminStoreId;
@@ -1224,6 +1695,9 @@ function renderAdmin(){
     const wrap = document.getElementById('adminStoreListWrap');
     const k = monthKey(curMonth);
     if(!wrap) return;
+    fillInviteStoreOptions();
+    renderInviteCodes();
+    toggleInviteRoleInputs();
     wrap.innerHTML = '';
     if(!db.shops.length){
       wrap.innerHTML = '<div class="empty">점포가 없습니다</div>';
@@ -1770,6 +2244,8 @@ function renderInitial(){
   else pull(true);
 
   if(!ver && db.records.length) mutate(()=>{});
+  fillSignupStoreOptions();
+  toggleSignupRoleInputs();
 
   syncTimer = setInterval(() => {
     if(pending.length) flush(); else pull();
