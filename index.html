@@ -938,6 +938,16 @@ function toggleSignupPanel(force){
 }
 function setSyncState(state,text){ const el=document.getElementById('sync'); el.className=`sync ${state}`; el.querySelector('span').textContent=text; }
 function saveDb(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+function hasUsefulData(data){
+  return !!data && (
+    (Array.isArray(data.admins) && data.admins.length) ||
+    (Array.isArray(data.shops) && data.shops.length) ||
+    (Array.isArray(data.people) && data.people.length) ||
+    (Array.isArray(data.records) && data.records.length) ||
+    (Array.isArray(data.reservations) && data.reservations.length) ||
+    (Array.isArray(data.invites) && data.invites.length)
+  );
+}
 
 function loadDb(){
   try{
@@ -961,6 +971,8 @@ function seedDb(){
 
 function migrate(raw){
   const base = seedDb();
+  const fallbackStoreId = Array.isArray(raw.shops) && raw.shops[0]?.id ? raw.shops[0].id : (base.shops[0]?.id || '');
+  const fallbackPersonId = Array.isArray(raw.people) && raw.people[0]?.id ? raw.people[0].id : (base.people[0]?.id || '');
 
   const migrateAdmins = (arr) => (Array.isArray(arr) ? arr : []).map(a=>{
     const admin = {
@@ -990,11 +1002,11 @@ function migrate(raw){
     version:5,
     admins:Array.isArray(raw.admins)&&raw.admins.length ? migrateAdmins(raw.admins) : base.admins,
     shops:[],
-    people:migratePeople(raw.people, base.shops[0]?.id),
+    people:migratePeople(raw.people, fallbackStoreId),
     records:(Array.isArray(raw.records)?raw.records:[]).map(r=>({
       id:r.id || uid('rec'),
-      storeId:r.storeId || base.shops[0].id,
-      staffId:r.staffId || base.people?.[0]?.id || base.people[0].id,
+      storeId:r.storeId || fallbackStoreId,
+      staffId:r.staffId || fallbackPersonId,
       date:r.date || ymd(new Date()),
       start:r.start || '09:00',
       end:r.end || '18:00',
@@ -1003,7 +1015,7 @@ function migrate(raw){
       ok:!!r.ok
     })).filter(r=>r.date && r.storeId && r.staffId),
     reservations:(Array.isArray(raw.reservations)?raw.reservations:[]).map(r=>{
-      const storeId = r.storeId || base.shops[0].id;
+      const storeId = r.storeId || fallbackStoreId;
       const time = String(r.time || '').trim();
       const datetime = r.datetime || (r.date && time ? `${r.date}T${time}` : null);
       return {
@@ -1025,7 +1037,7 @@ function migrate(raw){
           id:i.id || uid('invite'),
           code:normalizeInviteCode(i.code) || nextInviteCode(),
           role: i.role === 'manager' ? 'manager' : i.role === 'admin' ? 'admin' : i.role === 'parttime' ? 'parttime' : 'employee',
-          storeId:(i.role === 'manager' || i.role === 'admin') ? '' : (i.storeId || base.shops[0]?.id),
+          storeId:(i.role === 'manager' || i.role === 'admin') ? '' : (i.storeId || fallbackStoreId),
           storeName: i.role === 'manager' || i.role === 'admin' ? String(i.storeName || '').trim() : '',
           ownerId: i.ownerId || '',
           maxUses:Number(i.maxUses)||1,
@@ -1085,7 +1097,7 @@ function migrate(raw){
   if(Array.isArray(raw.work)){
     out.records = raw.work.map(r=>({
       id:r.id || uid('rec'),
-      storeId:out.shops[0].id,
+      storeId:out.shops[0]?.id || fallbackStoreId,
       staffId: out.people[0]?.id,
       date:r.date || ymd(new Date()),
       start:r.start || '09:00',
@@ -1113,6 +1125,11 @@ async function pull(force){
     if(!r.ok) throw 0;
     const s = await r.json();
     if(typeof s?.v === 'number' && (s.v > ver || force)){
+      if(!hasUsefulData(s.data) && hasUsefulData(db)){
+        ver = s.v;
+        setSyncState('off', '원격 데이터 없음 · 로컬 유지');
+        return;
+      }
       db = migrate(s.data || {});
       ver = s.v;
       saveDb();
