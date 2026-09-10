@@ -13,6 +13,7 @@
   --line:#e3e7ee;
   --panel:#ffffff;
   --accent:#2f63ff;
+  --accent-soft:#eef3ff;
   --ok:#1fa96a;
   --warn:#c94040;
   --employee:#2f63ff;
@@ -25,6 +26,7 @@
   --tap:44px;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{max-width:100%; overflow-x:hidden}
 body{
   margin:0;
   background:var(--bg);
@@ -34,7 +36,7 @@ body{
   line-height:1.5;
   padding:12px 12px 28px;
 }
-.wrap{max-width:940px; margin:0 auto}
+.wrap{width:100%; max-width:940px; margin:0 auto}
 header{
   display:flex;
   justify-content:space-between;
@@ -68,7 +70,7 @@ h1{font-size:20px; margin:0}
 }
 .row{display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end}
 .login-hero{
-  padding:18px 0 12px;
+  padding:14px 0 12px;
   display:grid;
   grid-template-columns:1.15fr .85fr;
   gap:18px;
@@ -277,14 +279,21 @@ tbody tr:last-child td{border-bottom:0}
 .res-actions{display:flex; gap:4px}
 
 @media (max-width: 768px){
-  body{padding:10px 10px 24px; font-size:16px}
-  h1{font-size:22px}
-  .sync{font-size:13px}
-  .pill{font-size:13px; padding:5px 10px}
-  .card{padding:12px}
+  body{padding:calc(10px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom)); font-size:16px}
+  header{margin-bottom:8px}
+  header .meta{width:100%; justify-content:space-between}
+  h1{font-size:21px}
+  .sync{font-size:12px}
+  .pill{font-size:12px; padding:5px 10px}
+  .card{padding:12px; border-radius:12px; box-shadow:none}
   .subTitle{font-size:16px}
-  .btn,.tabs button,.nav button,input,select,textarea,.chk{min-height:44px}
+  .row{gap:10px}
+  .row>.f{flex:1 1 100% !important; width:100% !important; min-width:0 !important}
+  .btn,.tabs button,.nav button,input,select,textarea,.chk{min-height:48px}
+  .btn{width:100%; border-radius:12px}
   .btn.sm{padding:8px 10px}
+  .tw .btn,.res-actions .btn,.nav .btn,.tabs .btn{width:auto}
+  .btn.logout{width:auto; min-height:38px; padding:8px 10px}
   .sheet{padding:12px}
   .prow .top{margin-bottom:10px}
   .prow .top .nm{font-size:15px}
@@ -300,12 +309,20 @@ tbody tr:last-child td{border-bottom:0}
   .res-actions{flex-wrap:wrap}
   .res-actions .btn{width:100%}
   .res-actions .btn.sm{min-height:40px}
-  .login-hero{grid-template-columns:1fr; gap:12px; padding-top:8px}
-  .hero-title{font-size:25px}
+  .login-hero{display:block; padding:6px 0 10px}
+  .eyebrow{font-size:11px; margin-bottom:4px}
+  .hero-title{font-size:23px; line-height:1.2; margin-bottom:6px}
+  .hero-copy{font-size:13px; line-height:1.45}
   .feature-grid,.auth-grid{grid-template-columns:1fr}
-  .feature-grid{gap:7px}
-  .auth-panel{padding:12px}
+  .feature-grid{display:grid; grid-template-columns:1fr; gap:6px; margin-top:12px; width:100%; min-width:0}
+  .feature-card{min-width:0; padding:10px 12px; border-radius:10px; background:var(--accent-soft); text-align:left}
+  .feature-card b{font-size:12px; margin-bottom:0}
+  .feature-card span{display:none}
+  .auth-panel{padding:14px; border-radius:14px; box-shadow:none}
   .panel-head{display:block}
+  .panel-head h2{font-size:18px}
+  .panel-head p{font-size:12.5px}
+  .login-actions .btn{background:#f8fafc}
 }
 </style>
 </head>
