@@ -1127,7 +1127,9 @@ async function pull(force){
     if(typeof s?.v === 'number' && (s.v > ver || force)){
       if(!hasUsefulData(s.data) && hasUsefulData(db)){
         ver = s.v;
-        setSyncState('off', '원격 데이터 없음 · 로컬 유지');
+        setSyncState('off', '원격 데이터 없음 · 업로드 대기');
+        pending.push(d => d);
+        flush();
         return;
       }
       db = migrate(s.data || {});
@@ -1177,11 +1179,13 @@ function flush(){
 }
 
 function mutate(fn){
+  if(!ensureSyncReady()) return false;
   fn(db);
   saveDb();
   renderAll();
   pending.push(fn);
   flush();
+  return true;
 }
 
 function askPass(){
@@ -1190,6 +1194,12 @@ function askPass(){
   pass = v.trim();
   localStorage.setItem(PASS_KEY, pass);
   pull(true);
+}
+function ensureSyncReady(){
+  if(pass) return true;
+  alert('여러 기기에서 같은 데이터를 쓰려면 먼저 왼쪽 위 동기화 비밀번호를 입력해 주세요.');
+  askPass();
+  return !!pass;
 }
 
 function setRoleBadge(){
@@ -1277,6 +1287,7 @@ function loginWithPin(){
 }
 
 function registerWithInvite(){
+  if(!ensureSyncReady()) return;
   const roleSel = document.getElementById('registerRole')?.value || 'manager';
   const code = normalizeInviteCode(document.getElementById('inviteCode')?.value || '');
   const name = String(document.getElementById('inviteName').value || '').trim();
